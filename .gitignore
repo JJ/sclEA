@@ -1,0 +1,13 @@
+.cache
+.classpath
+.metadata/
+*.class
+*.jar
+bin/
+out/
+libs/
+.project
+.prefs
+.settings/
+*.log
+*.xml
