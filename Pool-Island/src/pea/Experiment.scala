@@ -11,66 +11,110 @@
 
 package pea
 
-import scala.util.Random
-import akka.actor.{ Actor, ActorRef, Props, ActorSystem }
 import scala.collection.mutable.HashMap
+import akka.actor.{ Actor, ActorRef, Props, ActorSystem }
 
 object Experiment {
 
-  def init() {
-
-    system = ActorSystem("pEAs")
-
-    val profiler = system.actorOf(Props[Profiler], "profiler")
-    val report = system.actorOf(Props[Report], "report")
-
-    report ! ('init, profiler, system)
-    profiler ! ('init, report)
-
-    report ! ('session, List(
-      (() => r1(profiler, report), "r1"),
-      (() => r1(profiler, report), "r2"))
-      )
-
-  }
-
-  var system: ActorSystem = _
-
-  def genInd(N: Int) = {
-    val r = new Random()
-    (for (i <- 1 to N) yield r.nextInt(2)).mkString
-  }
-
-  def genInitPop(PopSize: Int, ChromosomeSize: Int) = for (i <- 1 to PopSize) yield genInd(ChromosomeSize)
-
-  def r1(profiler: ActorRef, report: ActorRef) {
+  def r1(pprofiler: ActorRef, pmanager: ActorRef) {
     val conf = new HashMap[Symbol, Any]()
-    conf += ('evaluatorsCount -> 2) //10
-    conf += ('evaluatorsCapacity -> 50)
-    conf += ('reproducersCount -> 1)
-    conf += ('reproducersCapacity -> 50) // 50
-    conf += ('report -> report)
-    conf += ('profiler -> profiler)
+    conf += ('evaluatorsCount -> problem.evaluatorsCount)
+    conf += ('evaluatorsCapacity -> problem.evaluatorsCapacity)
+    conf += ('reproducersCount -> problem.reproducersCount)
+    conf += ('reproducersCapacity -> problem.reproducersCapacity)
 
-    profiler ! ('configuration, conf, 2)
+    conf += ('manager -> pmanager)
+    conf += ('profiler -> pprofiler)
 
-    val P1 = system.actorOf(Props[PoolManager])
-    val P2 = system.actorOf(Props[PoolManager])
+    pprofiler ! ('configuration, conf, 1)
 
-    val m = system.actorOf(Props[Manager])
-    P1 ! ('init, conf.clone ++= List(('population, genInitPop(256, 128)), ('system, system), ('manager, m)))
-    P2 ! ('init, conf.clone ++= List(('population, genInitPop(256, 128)), ('system, system), ('manager, m)))
+    val p1 = ExperimentRun.system.actorOf(Props[PoolManager])
 
-    P1 ! ('migrantsDestination, List(P2))
-    P2 ! ('migrantsDestination, List(P1))
+    val mIslandManager = ExperimentRun.system.actorOf(Props[IslandManager])
+
+    p1 ! ('init, conf.clone ++= List(
+      ('population, problem.genInitPop()),
+      ('system, ExperimentRun.system), ('manager, mIslandManager)))
+
+    p1 ! ('migrantsDestination, List(p1))
+
+    val pools = Set[ActorRef](p1)
+    val mconf = HashMap[Symbol, Any]()
+    mconf += ('pools -> pools)
+    mconf += ('profiler -> pprofiler)
+    mconf += ('manager -> pmanager)
+    mconf += ('system -> ExperimentRun.system)
+
+    mIslandManager ! ('init, mconf)
+
+    val poolsCount = pools.size
+    val cociente = problem.evaluations / poolsCount
+    val resto = problem.evaluations % poolsCount
+    val (primeros, ultimos) = pools.splitAt(resto)
+
+    for (p <- primeros)
+      p ! ('initEvaluations, cociente + 1)
+
+    for (p <- ultimos)
+      p ! ('initEvaluations, cociente)
+
+    mIslandManager ! 'start
+
+  }
+
+  def r2(pprofiler: ActorRef, pmanager: ActorRef) {
+    val conf = new HashMap[Symbol, Any]()
+    conf += ('evaluatorsCount -> problem.evaluatorsCount)
+    conf += ('evaluatorsCapacity -> problem.evaluatorsCapacity)
+    conf += ('reproducersCount -> problem.reproducersCount)
+    conf += ('reproducersCapacity -> problem.reproducersCapacity)
+
+    conf += ('manager -> pmanager)
+    conf += ('profiler -> pprofiler)
+
+    pprofiler ! ('configuration, conf, 2)
+
+    val p1 = ExperimentRun.system.actorOf(Props[PoolManager])
+    val p2 = ExperimentRun.system.actorOf(Props[PoolManager])
+
+    val mIslandManager = ExperimentRun.system.actorOf(Props[IslandManager])
+
+    p1 ! ('init, conf.clone ++= List(
+      ('population, problem.genInitPop()),
+      ('system, ExperimentRun.system),
+      ('manager, mIslandManager)))
+
+    p2 ! ('init, conf.clone ++= List(
+      ('population, problem.genInitPop()),
+      ('system, ExperimentRun.system),
+      ('manager, mIslandManager)))
+
+    p1 ! ('migrantsDestination, List(p2))
+    p2 ! ('migrantsDestination, List(p1))
+
+    val pools = Set[ActorRef](p1, p2)
 
     val mconf = HashMap[Symbol, Any]()
-    mconf += ('pools -> Set(P1, P2))
-    mconf += ('profiler -> profiler)
-    mconf += ('report -> report)
-    mconf += ('system -> system)
 
-    m ! ('init, mconf)
+    mconf += ('pools -> pools)
+    mconf += ('profiler -> pprofiler)
+    mconf += ('manager -> pmanager)
+    mconf += ('system -> ExperimentRun.system)
+
+    mIslandManager ! ('init, mconf)
+
+    val poolsCount = pools.size
+    val cociente = problem.evaluations / poolsCount
+    val resto = problem.evaluations % poolsCount
+    val (primeros, ultimos) = pools.splitAt(resto)
+
+    for (p <- primeros)
+      p ! ('initEvaluations, cociente + 1)
+
+    for (p <- ultimos)
+      p ! ('initEvaluations, cociente)
+
+    mIslandManager ! 'start
 
   }
 }

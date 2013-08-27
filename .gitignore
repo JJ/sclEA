@@ -11,3 +11,5 @@ libs/
 .settings/
 *.log
 *.xml
+tests/
+problems/

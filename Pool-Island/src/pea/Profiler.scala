@@ -20,8 +20,7 @@ import Evaluator._
 class Profiler extends Actor {
 
   var conf: HashMap[Symbol, Any] = _
-  var report: ActorRef = _
-  
+  var manager: ActorRef = _
   var initEvol: Long = _
   var nIslands: Int = _
   var iterations: ArrayBuffer[(Int, Int, Double)] = _
@@ -29,35 +28,47 @@ class Profiler extends Actor {
 
   def receive = {
 
-    case ('init, rprt: ActorRef) =>
-//      println("Profiler started: ")
-      
-      report = rprt
+    case ('init, pManager: ActorRef) =>
+      //      println("Profiler started: ")
+
+      manager = pManager
       emigrations = new ArrayBuffer[Long]()
       iterations = new ArrayBuffer[(Int, Int, Double)]
 
     case ('configuration, nConf: HashMap[Symbol, Any], nNIslands: Int) =>
-      conf = nConf
+      conf = nConf.clone()
       nIslands = nNIslands
       emigrations.clear()
       iterations.clear()
 
-    case ('migration, (i: String, f: Int), t: Long) =>
+    case ('migration, (_: List[AnyVal], _: Int), t: Long) =>
       emigrations += t
-
-    case ('iteration, population: Iterable[String]) =>
-      val fitnessEachInd = population.map(i => maxOnes(i))
-      val min = fitnessEachInd.min
-      val max = fitnessEachInd.max
-      val ave = fitnessEachInd.foldLeft(0)((a: Int, b: Int) => a + b) / fitnessEachInd.size
-      iterations += Tuple3(min, max, ave)
 
     case ('initEvol, t: Long) =>
       initEvol = t
 
-    case ('endEvol, t: Long, numberOfEvals: Int) =>
-      val evolutionDelay = (t - initEvol) / 1000.0
-      report ! ('experimentEnd, evolutionDelay, emigrations.length, conf, nIslands, numberOfEvals)
+    case ('iteration, population: Iterable[List[AnyVal]]) =>
+
+    /*      val popEval = population.map(i => problem.function(i))
+
+      iterations += Tuple3(
+        popEval.min,
+        popEval.max,
+        popEval.reduce((a: Int, b: Int) => a + b) / (popEval.size * 1.0))
+*/
+
+    case ('endEvol, t: Long, numberOfEvals: Int, bestSolution: Int) =>
+      //val evolutionDelay = (t - initEvol) / 1000.0
+      val evolutionDelay = (t - initEvol)
+      val reportData = HashMap[Symbol, Any]()
+      reportData += ('evolutionDelay -> evolutionDelay)
+      reportData += ('numberOfEvals -> numberOfEvals)
+      reportData += ('nEmig -> emigrations.length)
+      reportData += ('nIslands -> nIslands)
+      reportData += ('bestSol -> bestSolution)
+      reportData += ('conf -> conf)
+
+      manager ! ('experimentEnd, reportData)
 
     case 'finalize =>
   }

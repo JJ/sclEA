@@ -13,12 +13,34 @@ package pea
 
 import akka.actor.{ Actor, ActorRef }
 import scala.collection.mutable.HashMap
+import problems._
 
 object Evaluator {
-  def maxOnes(L: String) = (for (l <- L if l == '1') yield l).length
-}
 
-import Evaluator._
+  def evaluate(sels: Iterable[List[AnyVal]],
+    doIfFitnessTerminationCondition: (List[AnyVal], Int) => Unit): (Boolean, Iterable[(List[AnyVal], Int)]) = {
+
+    if (sels.isEmpty) {
+      (false, null)
+    } else {
+      val nSels = sels.map(
+        (ind: List[AnyVal]) => {
+          val fit = problem.function(ind)
+          if (problem.terminationCondition == 'fitnessTerminationCondition) {
+            if (problem.fitnessTerminationCondition(ind, fit)) {
+              doIfFitnessTerminationCondition(ind, fit)
+            }
+          }
+
+          (ind, fit)
+        })
+
+      (true, nSels)
+    }
+
+  }
+
+}
 
 class Evaluator extends Actor {
 
@@ -31,31 +53,29 @@ class Evaluator extends Actor {
       manager = pmanager
       profiler = pflr
 
-    case ('evaluate, pTable: HashMap[String, (Int, Int)], n: Int) =>
+    case ('evaluate, pTable: HashMap[List[AnyVal], (Int, Int)], n: Int) =>
       //      println('evaluate)
       val table = pTable.clone
-      val Sels = table.filter((a: (String, (Int, Int))) => a._2._2 == 1).keys.take(n)
-      if (Sels.isEmpty) {
-        manager ! ('evalEmpthyPool, self)
-        //        println('evalEmpthyPool)
+
+      val (res, nSels) = Evaluator.evaluate(
+        sels = table.filter(
+          (a: (List[AnyVal], (Int, Int))) => a._2._2 == 1).keys.take(n),
+        doIfFitnessTerminationCondition = (ind: List[AnyVal], fit: Int) => {
+          manager ! ('solutionReachedbyEvaluator, (ind, fit), self)
+        })
+
+      if (res) {
+        val pnSels = nSels.map(
+          (p: (List[AnyVal], Int)) => (p._1, (p._2, 2)))
+        manager ! ('add2Pool, pnSels)
+        manager ! ('evalDone, self, pnSels.size)
       } else {
-        val NSels = Sels.map(
-          (Ind: String) => {
-            val F = maxOnes(Ind)
-
-            if (F == Ind.length)
-              manager ! ('solutionReachedbyEvaluator, self)
-
-            (Ind, (F, 2))
-          })
-
-        manager ! ('add2Pool_Ind_Fit_State, NSels)
-        manager ! ('evalDone, self)
-        //        println("mandado evalDone")
+        manager ! ('evalEmpthyPool, self)
       }
 
     case 'finalize =>
       manager ! ('evaluatorFinalized, self)
 
   }
+
 }

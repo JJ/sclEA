@@ -13,63 +13,75 @@ package pea
 
 import akka.actor.{ Actor, Props, ActorSystem, ActorRef }
 import scala.collection.mutable.HashMap
-
+import scala.collection.mutable.ArrayBuffer
+import java.io._
 import java.util.Date
 
 class Manager extends Actor {
 
-  var pools: Set[ActorRef] = _
+  var results: ArrayBuffer[HashMap[Symbol, Any]] = _
   var profiler: ActorRef = _
-  var report: ActorRef = _
-  var endEvol: Boolean = _
-  var numberOfEvals: Int = _
+  var instances: ArrayBuffer[(() => Unit, String)] = _
   var system: ActorSystem = _
 
   def receive = {
 
-    case ('init, conf: HashMap[Symbol, Any]) =>
+    case ('init, pflr: ActorRef, sys: ActorSystem) =>
+      //      println("Report started: ")
+      profiler = pflr
+      system = sys
+      instances = new ArrayBuffer[(() => Unit, String)]()
+      results = ArrayBuffer[HashMap[Symbol, Any]]()
 
-      pools = conf('pools).asInstanceOf[Set[ActorRef]]
-      profiler = conf('profiler).asInstanceOf[ActorRef]
-      report = conf('report).asInstanceOf[ActorRef]
-      system = conf('system).asInstanceOf[ActorSystem]
+    case ('experimentEnd,
+      reportData: HashMap[Symbol, Any]) =>
+      // (println (format "Best fitness: %1d at %2d" (nth reportData 5) (.getTime (Date.))))
+      println("Best fitness: " + reportData('bestSol).asInstanceOf[Int] + " at " + new Date().getTime())
+      results += reportData
+      if (instances.isEmpty) {
+        println("All ends!")
 
-      profiler ! ('initEvol, new Date().getTime)
-      endEvol = false
-      numberOfEvals = 0
+        //if ("yes" == "yes") {
+        val w = new PrintWriter(new File("../../results/book2013/sclEA/parResults.csv"))
+        w.write("EvolutionDelay,NumberOfEvals,Emigrations,EvaluatorsCount,ReproducersCount,IslandsCount,BestSol\n")
 
-      for (p <- pools) { // All executing units to work!
-        p ! ('setPoolsManager, self)
-        p ! 'sReps
-        p ! 'sEvals
+        for (r <- results) {
+          val ec = r.asInstanceOf[HashMap[Symbol, Any]]('conf).asInstanceOf[HashMap[Symbol, Any]]('evaluatorsCount).asInstanceOf[Int]
+          val rc = r.asInstanceOf[HashMap[Symbol, Any]]('conf).asInstanceOf[HashMap[Symbol, Any]]('reproducersCount).asInstanceOf[Int]
+          val evolutionDelay = r.asInstanceOf[HashMap[Symbol, Any]]('evolutionDelay).asInstanceOf[Long]
+          val numberOfEvals = r.asInstanceOf[HashMap[Symbol, Any]]('numberOfEvals).asInstanceOf[Int]
+          val nEmig = r.asInstanceOf[HashMap[Symbol, Any]]('nEmig).asInstanceOf[Int]
+          val nIslands = r.asInstanceOf[HashMap[Symbol, Any]]('nIslands).asInstanceOf[Int]
+          val bestSol = r.asInstanceOf[HashMap[Symbol, Any]]('bestSol).asInstanceOf[Int]
+
+          w.write(s"$evolutionDelay,$numberOfEvals,$nEmig,$ec,$rc,$nIslands,$bestSol\n")
+        }
+        w.close()
+        //}
+
+        system.shutdown()
+        sheduling.ShedulingUtility.shutdown()
+
+      } else
+        self ! 'mkExperiment
+
+    case 'mkExperiment =>
+      if (!instances.isEmpty) {
+        val (now, name) = instances.remove(0)
+
+        val tt = new Date().getTime()
+        
+        println(s"Doing experiment: $name at $tt")
+
+        now()
+
       }
 
-    case ('solutionReachedByPoolManager, _: ActorRef) =>
-      for (p <- pools)
-        p ! 'solutionReachedbyAny
+    case ('session, funs: List[(() => Unit, String)]) =>
 
-    case ('endEvol, t: Long) =>
-      if (!endEvol) {
-        endEvol = true
-        profiler ! ('endEvol, t, numberOfEvals)
-      }
+      instances ++= funs
+      self ! 'mkExperiment
 
-    case ('evalDone, _) =>
-      numberOfEvals += 1
-
-    case ('poolManagerEnd, pid: ActorRef) =>
-      if (pools.contains(pid)) {
-        pools -= pid
-        system.stop(pid)
-      }
-
-      if (pools.isEmpty) {
-        self ! 'finalize
-      }
-
-    case 'finalize =>
-//      println("Manager finalized!")
-      report ! 'mkExperiment
   }
 
 }
