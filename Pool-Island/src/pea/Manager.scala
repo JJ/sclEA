@@ -36,7 +36,7 @@ class Manager extends Actor {
     case ('experimentEnd,
       reportData: HashMap[Symbol, Any]) =>
       // (println (format "Best fitness: %1d at %2d" (nth reportData 5) (.getTime (Date.))))
-      println("Best fitness: " + reportData('bestSol).asInstanceOf[Int] + " at " + new Date().getTime())
+      //      println("Best fitness: " + reportData('bestSol).asInstanceOf[Int] + " at " + new Date().getTime())
       results += reportData
       if (instances.isEmpty) {
         println("All ends!")
@@ -70,7 +70,7 @@ class Manager extends Actor {
         val (now, name) = instances.remove(0)
 
         val tt = new Date().getTime()
-        
+
         println(s"Doing experiment: $name at $tt")
 
         now()

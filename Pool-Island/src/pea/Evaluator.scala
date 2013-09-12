@@ -67,11 +67,11 @@ class Evaluator extends Actor {
       if (res) {
         val pnSels = nSels.map(
           (p: (List[AnyVal], Int)) => (p._1, (p._2, 2)))
+
         manager ! ('add2Pool, pnSels)
         manager ! ('evalDone, self, pnSels.size)
-      } else {
+      } else
         manager ! ('evalEmpthyPool, self)
-      }
 
     case 'finalize =>
       manager ! ('evaluatorFinalized, self)

@@ -26,6 +26,10 @@ class Profiler extends Actor {
   var iterations: ArrayBuffer[(Int, Int, Double)] = _
   var emigrations: ArrayBuffer[Long] = _
 
+  var evolutionDelay: Long = _
+  var numberOfEvals: Int = _
+  var bestSolution: Int = _
+
   def receive = {
 
     case ('init, pManager: ActorRef) =>
@@ -57,9 +61,7 @@ class Profiler extends Actor {
         popEval.reduce((a: Int, b: Int) => a + b) / (popEval.size * 1.0))
 */
 
-    case ('endEvol, t: Long, numberOfEvals: Int, bestSolution: Int) =>
-      //val evolutionDelay = (t - initEvol) / 1000.0
-      val evolutionDelay = (t - initEvol)
+    case 'experimentEnd =>
       val reportData = HashMap[Symbol, Any]()
       reportData += ('evolutionDelay -> evolutionDelay)
       reportData += ('numberOfEvals -> numberOfEvals)
@@ -70,6 +72,13 @@ class Profiler extends Actor {
 
       manager ! ('experimentEnd, reportData)
 
+    case ('endEvol, t: Long, pNumberOfEvals: Int, pBestSolution: Int) =>
+      //val evolutionDelay = (t - initEvol) / 1000.0
+      evolutionDelay = (t - initEvol)
+      numberOfEvals = pNumberOfEvals
+      bestSolution = pBestSolution
+
     case 'finalize =>
+
   }
 }

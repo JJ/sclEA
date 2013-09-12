@@ -15,10 +15,10 @@ object problem {
 
   def terminationCondition: Symbol =
     'fitnessTerminationCondition
-  //'cantEvalsTerminationCondition
+  //   'cantEvalsTerminationCondition
 
   def problemName =
-    //  'maxOne
+    //      'maxOnes
     'maxSAT
 
   def function(ind: List[AnyVal]): Int = conf.function(ind)
@@ -38,8 +38,10 @@ object problem {
 
   var conf: protocols.Problem =
     problemName match {
-      case 'maxOne => problems.maxOnes
-      case _ => problems.maxSAT
+      case 'maxOnes =>
+        problems.maxOnes
+      case _ =>
+        problems.maxSAT
     }
 
 }

@@ -22,12 +22,12 @@ object ExperimentRun extends App {
   var evaluations = problem.evaluations
   var solutionFound = false
 
-  def bestSolution(pool: HashMap[List[AnyVal], (Int, Int)]): Int = {
+  def bestSolution(pool: HashMap[List[AnyVal], (Int, Int)]): (List[AnyVal], Int) = {
     val sel = pool.filter(
       (a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).keys
     val all = sel.map(i => (i, pool(i)._1))
     all.reduce((a: (List[AnyVal], Int), b: (List[AnyVal], Int)) =>
-      if (a._2 < b._2) b else a)._2
+      if (a._2 < b._2) b else a)
   }
 
   def terminationCondition(): Boolean = {
@@ -45,12 +45,16 @@ object ExperimentRun extends App {
 
     var pool = initPool.clone
     var evalDone = 0
+
     while (!terminationCondition()) {
+
       val evaluatorsCapacity = problem.terminationCondition match {
         case 'fitnessTerminationCondition =>
           problem.evaluatorsCapacity
         case _ =>
-          evaluations -= evalDone
+          val teval = evaluations - evalDone
+          evaluations = if (teval > 0) teval else 0
+
           Math.min(evaluations, problem.evaluatorsCapacity)
       }
 
@@ -59,15 +63,17 @@ object ExperimentRun extends App {
         val (resEval, nSels) = Evaluator.evaluate(
           sels = pool.filter(
             (a: (List[AnyVal], (Int, Int))) => a._2._2 == 1).keys.take(evaluatorsCapacity),
-          doIfFitnessTerminationCondition = (ind: List[AnyVal], fit: Int) => {
-            solutionFound = true
-          })
+          doIfFitnessTerminationCondition =
+            (ind: List[AnyVal], fit: Int) => {
+
+              solutionFound = true
+            })
 
         if (resEval) {
           val pnSels = nSels.map(
             (p: (List[AnyVal], Int)) => (p._1, (p._2, 2)))
           pool ++= pnSels
-          newEvalDone += pnSels.size
+          newEvalDone = pnSels.size
         }
       }
 
@@ -92,7 +98,7 @@ object ExperimentRun extends App {
       evalDone = newEvalDone
     }
 
-    bestSolution(pool)
+    bestSolution(pool)._2
 
   }
 

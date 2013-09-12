@@ -22,10 +22,11 @@ class IslandManager extends Actor {
   var profiler: ActorRef = _
   var manager: ActorRef = _
   var endEvol: Boolean = _
+  var cierre: Boolean = _
   var numberOfEvals: Int = _
-  var system: ActorSystem = _
-
   var solutions: ArrayBuffer[(List[AnyVal], Int)] = _
+
+  var system: ActorSystem = _
 
   def receive = {
 
@@ -47,6 +48,7 @@ class IslandManager extends Actor {
       numberOfEvals = 0
 
       solutions = ArrayBuffer[(List[AnyVal], Int)]()
+      cierre = false
 
     case ('evalDone, pid: ActorRef, n: Int) =>
       if (pools contains pid) {
@@ -57,33 +59,44 @@ class IslandManager extends Actor {
 
       if (pools.contains(pid)) {
         pools -= pid
-        system.stop(pid)
       }
 
-      if (pools.isEmpty) {
+      if (pools.isEmpty && !cierre) {
         self ! 'finalize
+        cierre = true
       }
 
-    case ('solutionReached, _: ActorRef, sol: (List[AnyVal], Int)) =>
-      if (!endEvol) {
-        profiler ! ('endEvol, (new Date()).getTime(), numberOfEvals, sol._2)
-        endEvol = true
-      }
-
+    case 'deactivate =>
       for (p <- pools)
         p ! 'deactivate
-      self ! 'finalize
+
+    case ('solutionReached, pid: ActorRef, sol: (List[AnyVal], Int)) =>
+      if (pools.contains(pid)) {
+
+        if (!endEvol) {
+          profiler ! ('endEvol, (new Date()).getTime(), numberOfEvals, sol._2)
+          endEvol = true
+        }
+
+        self ! 'deactivate
+      }
 
     case ('numberOfEvaluationsReached, pid: ActorRef, bestSol: (List[AnyVal], Int)) =>
-      solutions += bestSol
-      pools -= pid
-      if (pools.isEmpty) {
-        profiler ! ('endEvol, (new Date()).getTime(), numberOfEvals, bestSolution()._2)
-        endEvol = true
-        pid ! 'finalize
+      if (pools.contains(pid)) {
+
+        solutions += bestSol
+        pools -= pid
+        if (pools.isEmpty) {
+          profiler ! ('endEvol, (new Date()).getTime(), numberOfEvals, bestSolution()._2)
+          endEvol = true
+        }
+
+        pid ! 'finalizeAllWorkers
+
       }
 
     case 'finalize =>
+      profiler ! 'experimentEnd
       system.stop(self)
   }
 

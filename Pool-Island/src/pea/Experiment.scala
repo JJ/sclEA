@@ -34,7 +34,8 @@ object Experiment {
 
     p1 ! ('init, conf.clone ++= List(
       ('population, problem.genInitPop()),
-      ('system, ExperimentRun.system), ('manager, mIslandManager)))
+      ('system, ExperimentRun.system),
+      ('manager, mIslandManager)))
 
     p1 ! ('migrantsDestination, List(p1))
 

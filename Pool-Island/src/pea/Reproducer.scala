@@ -38,22 +38,29 @@ object Reproducer {
     bestParents: Iterable[(List[AnyVal], Int)],
     poolSize: Int): HashMap[List[AnyVal], (Int, Int)] = {
 
-    val p = noParents ++ bestParents ++ subpop
-    val l1 = for ((i, j) <- p) yield (i, (j, 2))
-    val l2 = for (i <- nInds) yield (i, (-1, 1))
+    val l1 = for ((i, j) <- noParents ++ bestParents ++ subpop)
+      yield (i, (j, 2))
+
+    val l2 = for (i <- nInds)
+      yield (i, (-1, 1))
+
     val sub1 = HashMap[List[AnyVal], (Int, Int)]() ++ (l1 ++ l2)
     val table1 = table.clone() -- sub1.keys
     val cant2drop = table1.size - (poolSize - sub1.size)
 
-    val restOlds = table1 -- table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).keys.take(cant2drop)
+    val restOlds = table1 -- table.filter(
+      (a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).keys.take(cant2drop)
+
     val more2drop = (sub1.size + restOlds.size) - poolSize
 
     val result =
       if (more2drop > 0) {
-        restOlds -- restOlds.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 1).keys.take(more2drop)
+        restOlds -- restOlds.filter(
+          (a: (List[AnyVal], (Int, Int))) => a._2._2 == 1).keys.take(more2drop)
       } else {
         restOlds
       }
+
     result ++ sub1
   }
 
@@ -108,10 +115,10 @@ object Reproducer {
   def evolve(
     subpop: List[(List[AnyVal], Int)],
     parentsCount: Int,
-    doWhenLittle: => Unit = {}): (Boolean, (Set[(List[AnyVal], Int)], Iterable[List[AnyVal]], Iterable[(List[AnyVal], Int)])) = {
+    doWhenLittle: () => Unit = () => {}): (Boolean, (Set[(List[AnyVal], Int)], Iterable[List[AnyVal]], Iterable[(List[AnyVal], Int)])) = {
 
     if (subpop.size < 3) {
-      doWhenLittle
+      doWhenLittle()
       (false, null)
     } else {
       val pop2r = selectPop2Reproduce(subpop, parentsCount)
@@ -149,7 +156,7 @@ class Reproducer extends Actor {
         Reproducer.evolve(
           subpop,
           parentsCount = n / 2,
-          doWhenLittle = {
+          doWhenLittle = () => {
             manager ! ('repEmpthyPool, self)
           })
 
@@ -161,7 +168,7 @@ class Reproducer extends Actor {
             noParents, nInds,
             bestParents, PoolManager.poolSize))
         manager ! ('evolveDone, self)
-        manager ! ('iteration, nInds)
+        profiler ! ('iteration, nInds)
       }
 
     case ('emigrateBest, pTable: HashMap[List[AnyVal], (Int, Int)], destination: ActorRef) =>
@@ -171,6 +178,7 @@ class Reproducer extends Actor {
         val res = sels.reduce(
           (a: (List[AnyVal], (Int, Int)), b: (List[AnyVal], (Int, Int))) =>
             if (a._2._2 > b._2._2) a else b)
+
         destination ! ('migration, (res._1, res._2._1))
         profiler ! ('migration, (res._1, res._2._1), new Date().getTime())
       }

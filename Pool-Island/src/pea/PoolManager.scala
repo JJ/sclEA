@@ -51,6 +51,10 @@ class PoolManager extends Actor {
   //def receive = LoggingReceive {
   def receive = {
 
+    case 'finalizeAllWorkers =>
+      for (e <- evals ++ reps)
+        e ! 'finalize
+
     case ('initEvaluations, cant: Int) =>
       evaluations = cant
 
@@ -142,15 +146,22 @@ class PoolManager extends Actor {
         manager ! ('evalDone, self, n)
 
         val evaluatorsCapacity = problem.terminationCondition match {
-          case 'fitnessTerminationCondition => pmConf('evaluatorsCapacity).asInstanceOf[Int]
+          case 'fitnessTerminationCondition =>
+            problem.evaluatorsCapacity
+
           case _ =>
-            evaluations -= n
-            Math.min(evaluations, pmConf('evaluatorsCapacity).asInstanceOf[Int])
+
+            val teval = evaluations - n
+            
+            evaluations = if (teval > 0) teval else 0
+
+            Math.min(evaluations, problem.evaluatorsCapacity)
         }
 
         if (evaluatorsCapacity > 0) {
           pid ! ('evaluate, table, evaluatorsCapacity)
         } else {
+
           evaluationsDone()
         }
 
@@ -172,6 +183,7 @@ class PoolManager extends Actor {
     case 'deactivate =>
       log.debug("deactivate")
       active = false
+      self ! 'finalizeAllWorkers
 
     case ('solutionReachedbyEvaluator, (ind: List[AnyVal], fit: Int), pid: ActorRef) =>
       log.debug("solutionReachedbyEvaluator")
@@ -208,19 +220,17 @@ class PoolManager extends Actor {
     case 'finalize =>
       log.debug("finalize")
       manager ! ('poolManagerEnd, self)
-
+      system.stop(self)
   }
 
   def evaluationsDone() {
     // (send (.manager self) islandManager/numberOfEvaluationsReached *agent* bestSol)
+
     if (active) {
       manager ! ('numberOfEvaluationsReached, self, bestSolution())
-      self ! 'finalize
+      //      self ! 'finalize
       active = false
     }
-
-    for (e <- evals ++ reps)
-      e ! 'finalize
 
   }
 
