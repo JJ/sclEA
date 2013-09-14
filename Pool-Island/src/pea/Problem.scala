@@ -14,8 +14,8 @@ package pea
 object problem {
 
   def terminationCondition: Symbol =
-    'fitnessTerminationCondition
-  //   'cantEvalsTerminationCondition
+//    'fitnessTerminationCondition
+     'cantEvalsTerminationCondition
 
   def problemName =
     //      'maxOnes

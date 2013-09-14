@@ -71,7 +71,7 @@ class Manager extends Actor {
 
         val tt = new Date().getTime()
 
-        println(s"Doing experiment: $name at $tt")
+        println(s"Doing experiment: $name (time -> $tt)")
 
         now()
 

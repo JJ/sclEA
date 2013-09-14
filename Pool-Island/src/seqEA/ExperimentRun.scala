@@ -103,6 +103,10 @@ object ExperimentRun extends App {
   }
 
   def testsRunSeqEA() = {
+    
+    val tt = new Date().getTime()
+    println(s"Doing experiment (time -> $tt)")
+
     val initEvol = new Date().getTime()
 
     val res = runSeqEA(
