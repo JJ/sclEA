@@ -13,13 +13,7 @@ package protocols
 
 trait Problem {
 
-  def function(ind: List[AnyVal]): Int
-  def fitnessTerminationCondition(ind: List[AnyVal], fit: Int): Boolean
-  def genInd(): List[AnyVal]
-
-  def genInitPop() =
-    for (i <- 1 to popSize) yield genInd()
-
+  def terminationCondition: Symbol
   def evaluatorsCount: Int
   def evaluatorsCapacity: Int
   def reproducersCount: Int
@@ -30,6 +24,18 @@ trait Problem {
 
   def evaluations: Int
 
+  def seqOutputFilename: String
+  def parallelOutputFilename: String
+  
+  def function(ind: List[AnyVal]): Int
+  def fitnessTerminationCondition(ind: List[AnyVal], fit: Int): Boolean
+  def genInd(): List[AnyVal]
+
+  def genInitPop() =
+    for (i <- 1 to popSize) yield genInd()
+
   def changeGen(g: Any): Any
+  
+  def repetitions: Int
 
 }

@@ -13,14 +13,17 @@ package pea
 
 object problem {
 
-  def terminationCondition: Symbol =
-//    'fitnessTerminationCondition
-     'cantEvalsTerminationCondition
-
   def problemName =
     //      'maxOnes
     'maxSAT
 
+  def terminationCondition: Symbol = conf.terminationCondition
+  
+  def repetitions: Int = conf.repetitions
+
+  def seqOutputFilename: String = conf.seqOutputFilename
+  def parallelOutputFilename: String = conf.parallelOutputFilename
+  
   def function(ind: List[AnyVal]): Int = conf.function(ind)
 
   def fitnessTerminationCondition(ind: List[AnyVal], fit: Int): Boolean = conf.fitnessTerminationCondition(ind, fit)
@@ -33,7 +36,7 @@ object problem {
   def reproducersCapacity = conf.reproducersCapacity
 
   def evaluations = conf.evaluations
-
+  
   def changeGen(g: Any): Any = conf.changeGen(g)
 
   var conf: protocols.Problem =

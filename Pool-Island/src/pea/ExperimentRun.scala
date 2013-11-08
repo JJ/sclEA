@@ -11,23 +11,13 @@
 
 package pea
 
-import akka.actor.{ Actor, ActorRef, Props, ActorSystem }
-import com.typesafe.config.ConfigFactory
 
 object ExperimentRun extends App {
 
-  sheduling.ShedulingUtility.start()
-
-  var system: ActorSystem = ActorSystem("pEAs")
-
-  val eProfiler = system.actorOf(Props[Profiler])
-  val eManager = system.actorOf(Props[Manager])
-
-  eManager ! ('init, eProfiler, system)
-  eProfiler ! ('init, eManager)
-
-  eManager ! ('session,
-    (for (_ <- 1 to 20) yield (() => Experiment.r2(eProfiler, eManager), "r2")).toList)
+   if (args.length > 0 && args(0)=="seq")
+     seqEA.seqEA_Experiment.run()
+     else
+       pEAExperiment.run()
 
 }
 

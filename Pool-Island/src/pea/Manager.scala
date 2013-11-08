@@ -42,7 +42,7 @@ class Manager extends Actor {
         println("All ends!")
 
         //if ("yes" == "yes") {
-        val w = new PrintWriter(new File("../../results/book2013/sclEA/parResults.csv"))
+        val w = new PrintWriter(new File(problem.parallelOutputFilename))
         w.write("EvolutionDelay,NumberOfEvals,Emigrations,EvaluatorsCount,ReproducersCount,IslandsCount,BestSol\n")
 
         for (r <- results) {

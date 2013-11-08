@@ -28,13 +28,13 @@ object Experiment {
 
     pprofiler ! ('configuration, conf, 1)
 
-    val p1 = ExperimentRun.system.actorOf(Props[PoolManager])
+    val p1 = pEAExperiment.system.actorOf(Props[PoolManager])
 
-    val mIslandManager = ExperimentRun.system.actorOf(Props[IslandManager])
+    val mIslandManager = pEAExperiment.system.actorOf(Props[IslandManager])
 
     p1 ! ('init, conf.clone ++= List(
       ('population, problem.genInitPop()),
-      ('system, ExperimentRun.system),
+      ('system, pEAExperiment.system),
       ('manager, mIslandManager)))
 
     p1 ! ('migrantsDestination, List(p1))
@@ -44,7 +44,7 @@ object Experiment {
     mconf += ('pools -> pools)
     mconf += ('profiler -> pprofiler)
     mconf += ('manager -> pmanager)
-    mconf += ('system -> ExperimentRun.system)
+    mconf += ('system -> pEAExperiment.system)
 
     mIslandManager ! ('init, mconf)
 
@@ -75,19 +75,19 @@ object Experiment {
 
     pprofiler ! ('configuration, conf, 2)
 
-    val p1 = ExperimentRun.system.actorOf(Props[PoolManager])
-    val p2 = ExperimentRun.system.actorOf(Props[PoolManager])
+    val p1 = pEAExperiment.system.actorOf(Props[PoolManager])
+    val p2 = pEAExperiment.system.actorOf(Props[PoolManager])
 
-    val mIslandManager = ExperimentRun.system.actorOf(Props[IslandManager])
+    val mIslandManager = pEAExperiment.system.actorOf(Props[IslandManager])
 
     p1 ! ('init, conf.clone ++= List(
       ('population, problem.genInitPop()),
-      ('system, ExperimentRun.system),
+      ('system, pEAExperiment.system),
       ('manager, mIslandManager)))
 
     p2 ! ('init, conf.clone ++= List(
       ('population, problem.genInitPop()),
-      ('system, ExperimentRun.system),
+      ('system, pEAExperiment.system),
       ('manager, mIslandManager)))
 
     p1 ! ('migrantsDestination, List(p2))
@@ -100,7 +100,7 @@ object Experiment {
     mconf += ('pools -> pools)
     mconf += ('profiler -> pprofiler)
     mconf += ('manager -> pmanager)
-    mconf += ('system -> ExperimentRun.system)
+    mconf += ('system -> pEAExperiment.system)
 
     mIslandManager ! ('init, mconf)
 
