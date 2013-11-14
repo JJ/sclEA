@@ -11,11 +11,12 @@
 
 package pea
 
+import seqEA._
 
 object ExperimentRun extends App {
 
-   if (args.length > 0 && args(0)=="seq")
-     seqEA.seqEA_Experiment.run()
+   if (args.length > 0 && args(0).toLowerCase()=="seq")
+     seqEA_Experiment.run()
      else
        pEAExperiment.run()
 
