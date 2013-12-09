@@ -11,5 +11,5 @@ libs/
 .settings/
 *.log
 *.xml
+*.cnf
 tests/
-problems/
