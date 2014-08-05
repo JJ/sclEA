@@ -11,10 +11,12 @@
 
 package pea
 
-import akka.actor.{ Actor, Props, ActorSystem, ActorRef }
+import akka.actor.{Actor, Props, ActorSystem, ActorRef}
 import scala.collection.mutable.HashMap
 import scala.util.Random
-import java.util.Date
+
+//import java.util.Date
+
 import sheduling.ShedulingUtility
 import java.util.concurrent.Callable
 
@@ -23,13 +25,10 @@ import akka.event.LoggingReceive
 import akka.event.Logging
 
 object PoolManager {
-
   var poolSize: Int = _
-
 }
 
 class PoolManager extends Actor {
-
   val log = Logging(context.system, this)
 
   var table: HashMap[List[AnyVal], (Int, Int)] = _
@@ -76,17 +75,20 @@ class PoolManager extends Actor {
       system = conf('system).asInstanceOf[ActorSystem]
 
       table = HashMap[List[AnyVal], (Int, Int)]()
-      table ++= (for (p <- conf('population).asInstanceOf[Iterable[List[AnyVal]]]) yield (p, (-1, 1)))
+      table ++=
+        (for (p <- conf('population).asInstanceOf[Iterable[List[AnyVal]]])
+        yield (p, (-1, 1)))
+
       PoolManager.poolSize = table.size
 
       evals ++= (for (i <- 1 to conf('evaluatorsCount).asInstanceOf[Int])
-        yield system.actorOf(Props[Evaluator]))
+      yield system.actorOf(Props[Evaluator]))
 
       reps ++= (for (i <- 1 to conf('reproducersCount).asInstanceOf[Int])
-        yield system.actorOf(Props[Reproducer]))
+      yield system.actorOf(Props[Reproducer]))
 
       for (a <- evals ++ reps) {
-        a ! ('init, self, profiler)
+        a !('init, self, profiler)
       }
 
     case ('updatePool, newPool: HashMap[List[AnyVal], (Int, Int)]) =>
@@ -103,7 +105,7 @@ class PoolManager extends Actor {
 
     case ('migration, (i: List[AnyVal], f: Int)) =>
       log.debug("migration")
-      table += (i -> (f, 2))
+      table += (i ->(f, 2))
 
     case ('evaluatorFinalized, pid: ActorRef) =>
       if (evals contains pid) {
@@ -131,9 +133,9 @@ class PoolManager extends Actor {
       log.debug("evolveDone")
       if (active) {
         if (r.nextInt() % 2 == 0) {
-          pid ! ('emigrateBest, table, migrantsDestination(r.nextInt(migrantsDestination.length)))
+          pid !('emigrateBest, table, migrantsDestination(r.nextInt(migrantsDestination.length)))
         }
-        pid ! ('evolve, table, pmConf('reproducersCapacity).asInstanceOf[Int])
+        pid !('evolve, table, pmConf('reproducersCapacity).asInstanceOf[Int])
       } else {
         pid ! 'finalize
         //        system.stop(pid)
@@ -143,25 +145,21 @@ class PoolManager extends Actor {
       log.debug("evalDone")
       if (active) {
 
-        manager ! ('evalDone, self, n)
+        manager !('evalDone, self, n)
 
         val evaluatorsCapacity = problem.terminationCondition match {
           case 'fitnessTerminationCondition =>
             problem.evaluatorsCapacity
 
           case _ =>
-
             val teval = evaluations - n
-            
             evaluations = if (teval > 0) teval else 0
-
             Math.min(evaluations, problem.evaluatorsCapacity)
         }
 
         if (evaluatorsCapacity > 0) {
-          pid ! ('evaluate, table, evaluatorsCapacity)
+          pid !('evaluate, table, evaluatorsCapacity)
         } else {
-
           evaluationsDone()
         }
 
@@ -173,12 +171,12 @@ class PoolManager extends Actor {
     case 'sReps =>
       log.debug("sReps")
       for (e <- reps)
-        e ! ('evolve, table, 0)
+        e !('evolve, table, 0)
 
     case 'sEvals =>
       log.debug("sEvals")
       for (e <- evals)
-        e ! ('evaluate, table, 0)
+        e !('evaluate, table, 0)
 
     case 'deactivate =>
       log.debug("deactivate")
@@ -188,7 +186,7 @@ class PoolManager extends Actor {
     case ('solutionReachedbyEvaluator, (ind: List[AnyVal], fit: Int), pid: ActorRef) =>
       log.debug("solutionReachedbyEvaluator")
       if (active) {
-        manager ! ('solutionReached, self, (ind, fit))
+        manager !('solutionReached, self, (ind, fit))
         self ! 'finalize
         active = false
       }
@@ -203,7 +201,7 @@ class PoolManager extends Actor {
       ShedulingUtility.send_after(time, new Callable[Any] {
         def call() = {
           //log.debug ("eval")
-          pid ! ('evaluate, table, pmConf('evaluatorsCapacity).asInstanceOf[Int])
+          pid !('evaluate, table, pmConf('evaluatorsCapacity).asInstanceOf[Int])
         }
       })
 
@@ -213,21 +211,20 @@ class PoolManager extends Actor {
       ShedulingUtility.send_after(time, new Callable[Any] {
         def call() = {
           //log.debug ("rep")
-          pid ! ('evolve, table, pmConf('reproducersCapacity).asInstanceOf[Int])
+          pid !('evolve, table, pmConf('reproducersCapacity).asInstanceOf[Int])
         }
       })
 
     case 'finalize =>
       log.debug("finalize")
-      manager ! ('poolManagerEnd, self)
+      manager !('poolManagerEnd, self)
       system.stop(self)
   }
 
   def evaluationsDone() {
-    // (send (.manager self) islandManager/numberOfEvaluationsReached *agent* bestSol)
 
     if (active) {
-      manager ! ('numberOfEvaluationsReached, self, bestSolution())
+      manager !('numberOfEvaluationsReached, self, bestSolution())
       //      self ! 'finalize
       active = false
     }

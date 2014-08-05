@@ -24,6 +24,7 @@ object Evaluator {
       (false, null)
     } else {
       val nSels = sels.map(
+
         (ind: List[AnyVal]) => {
           val fit = problem.function(ind)
           if (problem.terminationCondition == 'fitnessTerminationCondition) {
@@ -33,6 +34,7 @@ object Evaluator {
           }
 
           (ind, fit)
+
         })
 
       (true, nSels)

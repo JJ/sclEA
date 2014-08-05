@@ -10,7 +10,7 @@ import java.io._
 object seqEA_Experiment {
 
   def run() {
-    
+
     var evaluations = problem.evaluations
     var solutionFound = false
 
@@ -51,6 +51,7 @@ object seqEA_Experiment {
         }
 
         var newEvalDone = 0
+
         if (evaluatorsCapacity > 0) {
           val (resEval, nSels) = Evaluator.evaluate(
             sels = pool.filter(
@@ -62,11 +63,11 @@ object seqEA_Experiment {
               })
 
           if (resEval) {
-            val pnSels = nSels.map(
-              (p: (List[AnyVal], Int)) => (p._1, (p._2, 2)))
+            val pnSels = nSels.map((p: (List[AnyVal], Int)) => (p._1, (p._2, 2)))
             pool ++= pnSels
             newEvalDone = pnSels.size
           }
+
         }
 
         val tFiltered = pool.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).keys.toList
@@ -101,15 +102,18 @@ object seqEA_Experiment {
 
       val initEvol = new Date().getTime()
 
-      val res = runSeqEA(
-        HashMap[List[AnyVal], (Int, Int)]() ++ (for (i <- problem.genInitPop()) yield (i, (-1, 1))))
+      val p = HashMap[List[AnyVal], (Int, Int)]()
+
+      p ++ (for (i <- problem.genInitPop()) yield (i, (-1, 1)))
+
+      val res = runSeqEA(p)
 
       (new Date().getTime() - initEvol, res)
     }
 
     val nRes =
       for (_ <- 1 to problem.repetitions)
-        yield testsRunSeqEA()
+      yield testsRunSeqEA()
 
     val w = new PrintWriter(new File(problem.seqOutputFilename))
     w.write("EvolutionDelay,BestSol\n")

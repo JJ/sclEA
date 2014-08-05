@@ -88,12 +88,11 @@ object maxSAT extends protocols.Problem {
 
     val ind = pInd.asInstanceOf[List[Boolean]]
 
-    solution.clauses.filter(
-      (c: List[(Boolean, Int)]) => {
-        // Al menos un componente de la cláusula coincide con el valor del gen.
-        c.exists(
-          (e: (Boolean, Int)) => ind(e._2) == e._1)
-      }).size
+    solution.clauses.count((c: List[(Boolean, Int)]) => {
+      // Al menos un componente de la cláusula coincide con el valor del gen.
+      c.exists(
+        (e: (Boolean, Int)) => ind(e._2) == e._1)
+    })
 
   }
 
