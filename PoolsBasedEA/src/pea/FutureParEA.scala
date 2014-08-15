@@ -8,7 +8,7 @@ import pea.ds.{EvaluatorsPool, ReproducersPool}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 
 trait FutureParEA {
   this: Problem =>
@@ -20,11 +20,14 @@ trait FutureParEA {
     config.setData(fitnessFunction, qualityFitnessFunction, doWhenQualityFitnessTrue)
     Evaluator.config = config
     Reproducer.config = config
+    val pResultObtained = Promise[TIndEval]()
+    pResultObtained.future.onSuccess({ case r => resultObtained(r)})
     val p2Rep = new ReproducersPool[TIndEval]()
     val p2Eval = new EvaluatorsPool[TIndividual](getPop())
     Evaluations = 0
     var bestSolution = new TIndEval(null, -1)
     val nFutures = new AtomicInteger(0)
+    val resultGiven = new AtomicInteger(0)
     def mkFuture(beginAction: => Any, endAction: (Any) => Unit, cond: => Boolean): Future[Any] = {
       val res = Future {
         beginAction
@@ -36,9 +39,13 @@ trait FutureParEA {
           val nVal = nFutures.decrementAndGet()
           if (cond)
             mkFuture(beginAction, endAction, cond)
-          else if (nVal == 0) {
-            executor.shutdown()
-            resultObtained(bestSolution)
+          else {
+            if (!pResultObtained.isCompleted) {
+              pResultObtained.success(bestSolution)
+            }
+            if (nVal == 0) {
+              executor.shutdown()
+            }
           }
       }
       res
