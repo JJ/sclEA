@@ -13,7 +13,7 @@ object Reproducer {
     val n = pop.length
     for (i <- 0 to n - 1) {
       for (j <- 0 to n - i - 1) {
-        res += pop(i)._1.clone().asInstanceOf[TIndividual]
+        res += pop(i)._1.clone()
       }
     }
     res
@@ -25,8 +25,8 @@ object Reproducer {
     for (i <- 0 to n - 1) {
       val m1 = config.rand.nextInt(nPar)
       val m2 = config.rand.nextInt(nPar)
-      val i1 = pop(m1).clone().asInstanceOf[TIndividual]
-      val i2 = pop(m2).clone().asInstanceOf[TIndividual]
+      val i1 = pop(m1).clone()
+      val i2 = pop(m2).clone()
       res += Tuple2[TIndividual, TIndividual](i1, i2)
     }
     res.toList
@@ -50,7 +50,7 @@ object Reproducer {
 
   def changeGen(aByte: Byte): Byte = if (aByte == 0) 1.asInstanceOf[Byte] else 0.asInstanceOf[Byte]
 
-  def mutate(ind: TIndividual): Unit = {
+  def mutate(ind: TIndividual) {
     val pos = config.rand.nextInt(ind.length)
     ind(pos) = changeGen(ind(pos))
   }

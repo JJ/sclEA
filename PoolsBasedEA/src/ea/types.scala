@@ -2,15 +2,26 @@ package ea
 
 import scala.collection.mutable.ArrayBuffer
 
-class TIndividual extends ArrayBuffer[Byte] {}
+class TIndividual extends ArrayBuffer[Byte] {
+  override def clone(): TIndividual = {
+    val res = new TIndividual()
+    this.foreach(res += _)
+    res
+  }
+}
 
-class TPopulation extends ArrayBuffer[TIndividual] {}
+class TPopulation extends ArrayBuffer[TIndividual] {
+  override def clone(): TPopulation = {
+    val res = new TPopulation()
+    this.foreach(res += _)
+    res
+  }
+}
 
-class TIndEval(p1: TIndividual, p2: Long) extends Tuple2[TIndividual, Long](p1, p2) {}
+class TIndEval(p1: TIndividual, p2: Long) extends Tuple2[TIndividual, Long](p1, p2) with Comparable[TIndEval] {
+  override def compareTo(o: TIndEval): Int = this._2.compareTo(o._2)
 
-abstract class TFitnessFunction extends (TIndividual => Long) {}
-
-abstract class TQualityF extends (Long => Boolean)
-
-abstract class Tdo extends (TIndEval => Unit)
-
+  override def clone(): TIndEval = {
+    new TIndEval(this._1, this._2)
+  }
+}

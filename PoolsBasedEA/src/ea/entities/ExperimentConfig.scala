@@ -7,11 +7,11 @@ import scala.util.Random
 class ExperimentConfig extends BaseConfig {
 
   val rand = new Random()
-  var ff: TFitnessFunction = _
-  var qf: TQualityF = _
-  var df: Tdo = _
+  var ff: TIndividual => Long = _
+  var qf: Long => Boolean = v => false
+  var df: TIndEval => Unit = (iEval) => {}
 
-  def setData(ff: TFitnessFunction, qf: TQualityF, df: Tdo): Unit = {
+  def setData(ff: TIndividual => Long, qf: Long => Boolean, df: TIndEval => Unit) {
     this.ff = ff
     this.qf = qf
     this.df = df
