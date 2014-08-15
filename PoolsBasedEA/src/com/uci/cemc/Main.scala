@@ -13,5 +13,6 @@ object Main extends App {
   val cnf = g.fromJson(fr, classOf[ExperimentConfig])
   //  val obj = new MaxOneProblem(cnf)
   val obj = new MaxSATProblem(cnf, "./problems/uf100-01.cnf")
-  println(obj.runSeqCEvals()._2)
+//  println(obj.runSeqCEvals()._2)
+  println(obj.runSeqFitnessQuality()._2)
 }

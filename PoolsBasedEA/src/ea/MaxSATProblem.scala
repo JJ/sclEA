@@ -6,12 +6,6 @@ import scala.collection.mutable.ArrayBuffer
 
 class MaxSATProblem(config: ExperimentConfig, instanceFileName: String) extends Problem(config) {
 
-  var clauseLength: Int = _
-  var varsCount: Int = _
-  var clausesCount: Int = _
-
-  var clauses: ArrayBuffer[List[(Byte, Int)]] = _
-
   val it = scala.io.Source.fromFile(instanceFileName).getLines
 
   (1 to 5).foreach(_ => it.next)
@@ -23,12 +17,13 @@ class MaxSATProblem(config: ExperimentConfig, instanceFileName: String) extends 
   it.next
   val l2 = it.next
   val f2 = l2.split(spaceRE)
-  clauseLength = f1.last.toInt
-  varsCount = f2(2).toInt
-  config.ChromosomeSize = varsCount
-  clausesCount = f2(3).toInt
 
-  clauses = ArrayBuffer[List[(Byte, Int)]]()
+  var clauseLength = f1.last.toInt
+  var varsCount = f2(2).toInt
+  config.ChromosomeSize = varsCount
+  var clausesCount = f2(3).toInt
+
+  var clauses = ArrayBuffer[List[(Byte, Int)]]()
 
   var l = it.next
   while (!l.contains("%")) {
@@ -51,7 +46,6 @@ class MaxSATProblem(config: ExperimentConfig, instanceFileName: String) extends 
 
   override def qualityFitnessFunction(v: Long): Boolean = v > 405
 
-  override def doWhenQualityFitnessTrue(i: TIndEval) {
-  }
+  override def doWhenQualityFitnessTrue(i: TIndEval) {}
 
 }

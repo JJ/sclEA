@@ -47,4 +47,29 @@ abstract class Problem(config: ExperimentConfig) {
     indEvals(0)
   }
 
+  def runSeqFitnessQuality(): TIndEval = {
+    config.setData(fitnessFunction, qualityFitnessFunction, doWhenQualityFitnessTrue)
+
+    Evaluator.config = config
+    Reproducer.config = config
+    var p2Eval = getPop()
+    var indEvals = Evaluator.evaluate(p2Eval.toList)
+    indEvals = indEvals.sortWith(_.compareTo(_) > 0)
+    Evaluations = indEvals.length
+    var solutionReached = false
+    val df = config.df
+    val solutionReachedFunction = (ind: TIndEval) => {
+      df(ind)
+      solutionReached = true
+    }
+    config.df = solutionReachedFunction
+    while (!solutionReached) {
+      p2Eval = Reproducer.reproduce(indEvals.toList)
+      indEvals = Evaluator.evaluate(p2Eval.toList)
+      indEvals = indEvals.sortWith(_.compareTo(_) > 0)
+      Evaluations += indEvals.length
+    }
+    indEvals(0)
+  }
+
 }
