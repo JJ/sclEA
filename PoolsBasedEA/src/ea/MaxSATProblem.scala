@@ -4,18 +4,19 @@ import ea.entities.ExperimentConfig
 
 import scala.collection.mutable.ArrayBuffer
 
-class MaxSATProblem(config: ExperimentConfig, instanceFileName: String) extends Problem(config) {
+class MaxSATProblem(conf: ExperimentConfig, instanceFileName: String) extends Problem {
+  config = conf
 
-  val it = scala.io.Source.fromFile(instanceFileName).getLines
+  val it = scala.io.Source.fromFile(instanceFileName).getLines()
 
-  (1 to 5).foreach(_ => it.next)
+  (1 to 5).foreach(_ => it.next())
 
   val spaceRE = """\s+0*"""
 
-  val l1 = it.next
+  val l1 = it.next()
   val f1 = l1.split(spaceRE)
-  it.next
-  val l2 = it.next
+  it.next()
+  val l2 = it.next()
   val f2 = l2.split(spaceRE)
 
   var clauseLength = f1.last.toInt
@@ -25,7 +26,7 @@ class MaxSATProblem(config: ExperimentConfig, instanceFileName: String) extends 
 
   var clauses = ArrayBuffer[List[(Byte, Int)]]()
 
-  var l = it.next
+  var l = it.next()
   while (!l.contains("%")) {
 
     val intValues = l.trim.split(spaceRE).map(_.toInt)
@@ -34,7 +35,7 @@ class MaxSATProblem(config: ExperimentConfig, instanceFileName: String) extends 
 
     clauses += nEntry.toList
 
-    l = it.next
+    l = it.next()
   }
 
   override def fitnessFunction(ind: TIndividual): Long = {

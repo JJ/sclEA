@@ -14,5 +14,5 @@ object Main extends App {
   //  val obj = new MaxOneProblem(cnf)
   val obj = new MaxSATProblem(cnf, "./problems/uf100-01.cnf")
 //  println(obj.runSeqCEvals()._2)
-  println(obj.runSeqFitnessQuality()._2)
+  println(obj.runParCEvals()._2)
 }
