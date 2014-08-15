@@ -12,11 +12,11 @@
 package pea
 
 import java.util.Date
-import akka.actor.{ Actor, Props, ActorSystem, ActorRef }
+
+import akka.actor.{Actor, ActorRef}
+
 import scala.collection.mutable.HashMap
 import scala.util.Random
-import scala.collection.mutable.ArrayBuffer
-import sun.security.util.Length
 
 object Reproducer {
 
@@ -31,18 +31,18 @@ object Reproducer {
       (p1: (List[AnyVal], Int), p2: (List[AnyVal], Int)) => if (p1._2 > p2._2) p1 else p2)
 
   def mergeFunction(
-    table: HashMap[List[AnyVal], (Int, Int)],
-    subpop: Iterable[(List[AnyVal], Int)],
-    noParents: Set[(List[AnyVal], Int)],
-    nInds: Iterable[List[AnyVal]],
-    bestParents: Iterable[(List[AnyVal], Int)],
-    poolSize: Int): HashMap[List[AnyVal], (Int, Int)] = {
+                     table: HashMap[List[AnyVal], (Int, Int)],
+                     subpop: Iterable[(List[AnyVal], Int)],
+                     noParents: Set[(List[AnyVal], Int)],
+                     nInds: Iterable[List[AnyVal]],
+                     bestParents: Iterable[(List[AnyVal], Int)],
+                     poolSize: Int): HashMap[List[AnyVal], (Int, Int)] = {
 
     val l1 = for ((i, j) <- noParents ++ bestParents ++ subpop)
-      yield (i, (j, 2))
+    yield (i, (j, 2))
 
     val l2 = for (i <- nInds)
-      yield (i, (-1, 1))
+    yield (i, (-1, 1))
 
     val sub1 = HashMap[List[AnyVal], (Int, Int)]() ++ (l1 ++ l2)
     val table1 = table.clone() -- sub1.keys
@@ -65,8 +65,8 @@ object Reproducer {
   }
 
   def selectPop2Reproduce(
-    subpop: List[(List[AnyVal], Int)],
-    parentsCount: Int) = {
+                           subpop: List[(List[AnyVal], Int)],
+                           parentsCount: Int) = {
     def select1from3() = {
       val tuple3 = (for (i <- 1 to 3) yield subpop(r.nextInt(subpop.length))).toList
       tuple3.reduce(
@@ -78,11 +78,11 @@ object Reproducer {
   }
 
   def parentsSelector(population: List[(List[AnyVal], Int)],
-    n: Int): List[((List[AnyVal], Int), (List[AnyVal], Int))] = {
+                      n: Int): List[((List[AnyVal], Int), (List[AnyVal], Int))] = {
     val positions = (for (_ <- (1 to n))
-      yield (
-      r.nextInt(population.length),
-      r.nextInt(population.length))).toList
+    yield (
+        r.nextInt(population.length),
+        r.nextInt(population.length))).toList
 
     positions.map((x) => (population(x._1), population(x._2)))
   }
@@ -113,9 +113,9 @@ object Reproducer {
   val r = new Random()
 
   def evolve(
-    subpop: List[(List[AnyVal], Int)],
-    parentsCount: Int,
-    doWhenLittle: () => Unit = () => {}): (Boolean, (Set[(List[AnyVal], Int)], Iterable[List[AnyVal]], Iterable[(List[AnyVal], Int)])) = {
+              subpop: List[(List[AnyVal], Int)],
+              parentsCount: Int,
+              doWhenLittle: () => Unit = () => {}): (Boolean, (Set[(List[AnyVal], Int)], Iterable[List[AnyVal]], Iterable[(List[AnyVal], Int)])) = {
 
     if (subpop.size < 3) {
       doWhenLittle()
@@ -157,18 +157,18 @@ class Reproducer extends Actor {
           subpop,
           parentsCount = n / 2,
           doWhenLittle = () => {
-            manager ! ('repEmpthyPool, self)
+            manager !('repEmpthyPool, self)
           })
 
       if (res) {
         val (noParents, nInds, bestParents) = resultData
-        manager ! ('updatePool,
+        manager !('updatePool,
           Reproducer.mergeFunction(
             table, subpop,
             noParents, nInds,
             bestParents, PoolManager.poolSize))
-        manager ! ('evolveDone, self)
-        profiler ! ('iteration, nInds)
+        manager !('evolveDone, self)
+        profiler !('iteration, nInds)
       }
 
     case ('emigrateBest, pTable: HashMap[List[AnyVal], (Int, Int)], destination: ActorRef) =>
@@ -179,12 +179,12 @@ class Reproducer extends Actor {
           (a: (List[AnyVal], (Int, Int)), b: (List[AnyVal], (Int, Int))) =>
             if (a._2._2 > b._2._2) a else b)
 
-        destination ! ('migration, (res._1, res._2._1))
-        profiler ! ('migration, (res._1, res._2._1), new Date().getTime())
+        destination !('migration, (res._1, res._2._1))
+        profiler !('migration, (res._1, res._2._1), new Date().getTime())
       }
 
     case 'finalize =>
-      manager ! ('reproducerFinalized, self)
+      manager !('reproducerFinalized, self)
 
   }
 
