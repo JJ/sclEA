@@ -1,9 +1,8 @@
 package ea
 
 import ea.entities.ExperimentConfig
-import pea.FutureParEA
 
-abstract class Problem extends FutureParEA {
+abstract class Problem {
 
   var config: ExperimentConfig = _
   var Emigrations: Int = _
