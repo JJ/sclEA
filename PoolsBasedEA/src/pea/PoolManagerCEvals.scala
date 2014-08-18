@@ -10,7 +10,7 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 
-class PoolManagerCEvals(problem: Problem, cEvaluations: Int, manager: ActorRef, eContext: ExecutionContextExecutor, allFufuresFinished: () => Unit) extends Actor {
+class PoolManagerCEvals(problem: Problem, cEvaluations: Int, manager: ActorRef, eContext: ExecutionContextExecutor) extends Actor {
 
   private[this] implicit val executionContext = eContext
 
@@ -54,7 +54,7 @@ class PoolManagerCEvals(problem: Problem, cEvaluations: Int, manager: ActorRef, 
                 pResultObtained.success(bestSolution)
               }
               if (nVal == 0) {
-                allFufuresFinished()
+                manager ! 'allFuturesFinished
               }
             }
         }
