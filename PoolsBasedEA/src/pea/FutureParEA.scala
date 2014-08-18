@@ -16,11 +16,10 @@ trait FutureParEA {
   val system = ActorSystem("main")
 
   def runParCEvals(resultObtained: (TIndEval, Int, Int) => Unit): Unit = {
-    val resObtained = (ind: TIndEval,cEvals: Int,cEmmigrants: Int) => {
+    val resObtained = (ind: TIndEval, cEvals: Int, cEmmigrants: Int) => {
       resultObtained(ind, cEvals, cEmmigrants)
-      executor.shutdown()
     }
-    val controler = system.actorOf(Props(new PoolManagerControlerCEvals(this, resObtained, system, executionContext)))
+    val controler = system.actorOf(Props(new PoolManagerControlerCEvals(this, resObtained, system, executionContext, () => {executor.shutdown(); system.shutdown()})))
     controler ! 'start
   }
 

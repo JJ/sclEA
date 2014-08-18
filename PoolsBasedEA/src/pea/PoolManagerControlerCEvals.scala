@@ -5,13 +5,14 @@ import ea._
 
 import scala.concurrent.ExecutionContextExecutor
 
-class PoolManagerControlerCEvals(problem: Problem, resultObtained: (TIndEval, Int, Int) => Unit, system: ActorSystem, eContext: ExecutionContextExecutor) extends Actor {
+class PoolManagerControlerCEvals(problem: Problem, resultObtained: (TIndEval, Int, Int) => Unit, system: ActorSystem, eContext: ExecutionContextExecutor, allFufuresFinished: ()=> Unit) extends Actor {
 
   var Evaluations = 0
   var Emigrations = 0
   var BestSolution = new TIndEval(null, -1)
 
   private[this] var islandsFinished = 0
+  private[this] var islandsFuturesFinished = 0
 
   override def receive = {
 
@@ -34,8 +35,15 @@ class PoolManagerControlerCEvals(problem: Problem, resultObtained: (TIndEval, In
   problem.config.setData(problem.fitnessFunction, problem.qualityFitnessFunction, problem.doWhenQualityFitnessTrue)
   Evaluator.config = problem.config
   Reproducer.config = problem.config
-  val i1 = system.actorOf(Props(new PoolManagerCEvals(problem, problem.config.Evaluations, self, eContext)))
-  val i2 = system.actorOf(Props(new PoolManagerCEvals(problem, problem.config.Evaluations, self, eContext)))
+  val islandsFuturesFinishedControl = () => {
+    islandsFuturesFinished += 1
+    if (islandsFuturesFinished == 2) {
+      allFufuresFinished()
+    }
+  }
+
+  val i1 = system.actorOf(Props(new PoolManagerCEvals(problem, problem.config.Evaluations, self, eContext, islandsFuturesFinishedControl)))
+  val i2 = system.actorOf(Props(new PoolManagerCEvals(problem, problem.config.Evaluations, self, eContext, islandsFuturesFinishedControl)))
 
   i2 !('migrantsDestiny, i1)
   i1 !('migrantsDestiny, i2)
