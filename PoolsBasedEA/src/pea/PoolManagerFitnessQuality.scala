@@ -10,18 +10,29 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 
-class PoolManagerCEvals(problem: Problem, cEvaluations: Int, manager: ActorRef, eContext: ExecutionContextExecutor) extends Actor {
+class PoolManagerFitnessQuality(problem: Problem, manager: ActorRef, eContext: ExecutionContextExecutor) extends Actor {
 
   private[this] implicit val executionContext = eContext
 
   var migrantsDestiny: ActorRef = _
   var Evaluations: Int = _
   var Emigrations: Int = _
+  var resultObtained: Boolean = false
+  var active: Boolean = true
 
   val p2Rep = new ReproducersPool[TIndEval]()
   val p2Eval = new EvaluatorsPool[TIndividual](problem.getPop())
 
   override def receive: Receive = {
+
+    case 'resultObtained =>
+      active = false
+      if (!resultObtained) {
+        manager !('resultObtained, new TIndEval(null, -1), Evaluations, Emigrations)
+        active = false
+        resultObtained = true
+      }
+
     case ('migrantsDestiny, mDestiny: ActorRef) =>
       migrantsDestiny = mDestiny
 
@@ -33,7 +44,10 @@ class PoolManagerCEvals(problem: Problem, cEvaluations: Int, manager: ActorRef, 
     case 'start =>
       val pResultObtained = Promise[TIndEval]()
       pResultObtained.future.onSuccess({
-        case r => manager !('resultObtained, r, Evaluations, Emigrations)
+        case r => if (!resultObtained) {
+          manager !('resultObtained, r, Evaluations, Emigrations)
+          resultObtained = true
+        }
       })
       Evaluations = 0
       var bestSolution = new TIndEval(null, -1)
@@ -62,7 +76,13 @@ class PoolManagerCEvals(problem: Problem, cEvaluations: Int, manager: ActorRef, 
         }
         res
       }
-
+      val originalDoWhenFind = problem.config.df
+      val newDoWhenFind: TIndEval => Unit = (iEval: TIndEval) => {
+        originalDoWhenFind(iEval)
+        bestSolution = iEval
+        active = false
+      }
+      problem.config.df = newDoWhenFind
       for (i <- 1 to problem.config.EvaluatorsCount) {
         val inds2Eval1: List[TIndividual] = p2Eval.extractElements(problem.config.EvaluatorsCapacity).toList
         mkFuture[TIndividual](inds2Eval1, p2Eval.extractElements(problem.config.EvaluatorsCapacity).toList,
@@ -78,7 +98,7 @@ class PoolManagerCEvals(problem: Problem, cEvaluations: Int, manager: ActorRef, 
                 bestSolution = eResult(0)
               }
             }
-          }, Evaluations < cEvaluations)
+          }, active)
       }
 
       for (i <- 1 to problem.config.ReproducersCount) {
@@ -95,7 +115,7 @@ class PoolManagerCEvals(problem: Problem, cEvaluations: Int, manager: ActorRef, 
                 migrantsDestiny !('migrate, bestSolution.clone())
               }
             }
-          }, Evaluations < cEvaluations)
+          }, active)
       }
 
   }

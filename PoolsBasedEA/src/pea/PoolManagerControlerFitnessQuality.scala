@@ -1,11 +1,11 @@
 package pea
 
 import akka.actor.{Actor, ActorSystem, Props}
-import ea._
+import ea.{Evaluator, Problem, Reproducer, TIndEval}
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ExecutionContextExecutor, Promise}
 
-class PoolManagerControlerCEvals(problem: Problem, resultObtained: (TIndEval, Int, Int) => Unit, system: ActorSystem, eContext: ExecutionContextExecutor, allFufuresFinished: => Unit) extends Actor {
+class PoolManagerControlerFitnessQuality(problem: Problem, resultObtained: (TIndEval, Int, Int) => Unit, system: ActorSystem, eContext: ExecutionContextExecutor, allFufuresFinished: => Unit) extends Actor {
 
   var Evaluations: Int = _
   var Emigrations: Int = _
@@ -15,16 +15,26 @@ class PoolManagerControlerCEvals(problem: Problem, resultObtained: (TIndEval, In
   private[this] var islandsFuturesFinished: Int = _
   private[this] implicit val executionContext = eContext
 
+//  val allFuturesFinishedPromise = Promise[Boolean]()
+//  val allFuturesFinishedFuture = allFuturesFinishedPromise.future
+//  val resultObtainedPromise = Promise[Boolean]()
+//  val resultObtainedFuture = resultObtainedPromise.future
+
   override def receive = {
 
     case ('resultObtained, ind: TIndEval, cEvals: Int, cEmigrations: Int) =>
       islandsFinished += 1
       Evaluations += cEvals
       Emigrations += cEmigrations
-      if (BestSolution._2 < ind._2)
+      if (BestSolution._1 == null) {
         BestSolution = ind
-      if (islandsFinished == problem.config.IslandsCount)
+        for (i <- islands)
+          i ! 'resultObtained
+      }
+      if (islandsFinished == problem.config.IslandsCount) {
         resultObtained(BestSolution, Evaluations, Emigrations)
+//        resultObtainedPromise.success(true)
+      }
 
     case 'start =>
       islandsFinished = 0
@@ -38,18 +48,22 @@ class PoolManagerControlerCEvals(problem: Problem, resultObtained: (TIndEval, In
       islandsFuturesFinished += 1
       if (islandsFuturesFinished == problem.config.IslandsCount) {
         allFufuresFinished
+//        allFuturesFinishedPromise.success(true)
       }
 
   }
+//
+//  for {
+//    r1 <- allFuturesFinishedFuture
+//    r1 <- resultObtainedFuture
+//  } allFufuresFinished
 
   problem.config.setData(problem.fitnessFunction, problem.qualityFitnessFunction, problem.doWhenQualityFitnessTrue)
   Evaluator.config = problem.config
   Reproducer.config = problem.config
 
-  val a = problem.config.Evaluations / problem.config.IslandsCount
-  val rest = problem.config.Evaluations % problem.config.IslandsCount
   val islands = for (i <- 0 to problem.config.IslandsCount - 1)
-  yield system.actorOf(Props(new PoolManagerCEvals(problem, a + (if (i < rest) 1 else 0), self, eContext)))
+  yield system.actorOf(Props(new PoolManagerFitnessQuality(problem, self, eContext)))
 
   for (i <- 0 to problem.config.IslandsCount - 1)
     islands(i) !('migrantsDestiny, islands((i + 1) % problem.config.IslandsCount))
