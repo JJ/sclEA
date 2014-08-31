@@ -15,6 +15,7 @@ import java.util.Date
 
 import akka.actor.{Actor, ActorRef}
 
+import scala.collection.mutable
 import scala.collection.mutable.HashMap
 import scala.util.Random
 
@@ -31,12 +32,12 @@ object Reproducer {
       (p1: (List[AnyVal], Int), p2: (List[AnyVal], Int)) => if (p1._2 > p2._2) p1 else p2)
 
   def mergeFunction(
-                     table: HashMap[List[AnyVal], (Int, Int)],
+                     table: mutable.HashMap[List[AnyVal], (Int, Int)],
                      subpop: Iterable[(List[AnyVal], Int)],
                      noParents: Set[(List[AnyVal], Int)],
                      nInds: Iterable[List[AnyVal]],
                      bestParents: Iterable[(List[AnyVal], Int)],
-                     poolSize: Int): HashMap[List[AnyVal], (Int, Int)] = {
+                     poolSize: Int): mutable.HashMap[List[AnyVal], (Int, Int)] = {
 
     val l1 = for ((i, j) <- noParents ++ bestParents ++ subpop)
     yield (i, (j, 2))
@@ -44,7 +45,7 @@ object Reproducer {
     val l2 = for (i <- nInds)
     yield (i, (-1, 1))
 
-    val sub1 = HashMap[List[AnyVal], (Int, Int)]() ++ (l1 ++ l2)
+    val sub1 = mutable.HashMap[List[AnyVal], (Int, Int)]() ++ (l1 ++ l2)
     val table1 = table.clone() -- sub1.keys
     val cant2drop = table1.size - (poolSize - sub1.size)
 
@@ -79,9 +80,8 @@ object Reproducer {
 
   def parentsSelector(population: List[(List[AnyVal], Int)],
                       n: Int): List[((List[AnyVal], Int), (List[AnyVal], Int))] = {
-    val positions = (for (_ <- (1 to n))
-    yield (
-        r.nextInt(population.length),
+    val positions = (for (_ <- 1 to n)
+    yield (r.nextInt(population.length),
         r.nextInt(population.length))).toList
 
     positions.map((x) => (population(x._1), population(x._2)))
@@ -123,7 +123,7 @@ object Reproducer {
     } else {
       val pop2r = selectPop2Reproduce(subpop, parentsCount)
       val parents2use = parentsSelector(pop2r.toList, parentsCount)
-      val nIndsByPair = parents2use.map(crossover _)
+      val nIndsByPair = parents2use.map(crossover)
       val nInds = (for ((i, _) <- nIndsByPair) yield i) ++ (for ((_, i) <- nIndsByPair) yield i)
       val noParents = subpop.toSet diff flatt(parents2use.toList).toSet
       val bestParents = List(bestParent(pop2r.toList))
@@ -145,8 +145,8 @@ class Reproducer extends Actor {
       manager = pmanager
       profiler = pflr
 
-    case ('evolve, pTable: HashMap[List[AnyVal], (Int, Int)], n: Int) =>
-      val table = pTable.clone
+    case ('evolve, pTable: mutable.HashMap[List[AnyVal], (Int, Int)], n: Int) =>
+      val table = pTable.clone()
       val tFiltered = table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).keys.toList
       val population = tFiltered.map(i => (i, table(i)._1))
 
@@ -171,8 +171,8 @@ class Reproducer extends Actor {
         profiler !('iteration, nInds)
       }
 
-    case ('emigrateBest, pTable: HashMap[List[AnyVal], (Int, Int)], destination: ActorRef) =>
-      val table = pTable.clone
+    case ('emigrateBest, pTable: mutable.HashMap[List[AnyVal], (Int, Int)], destination: ActorRef) =>
+      val table = pTable.clone()
       val sels = table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2)
       if (sels.size > 0) {
         val res = sels.reduce(
@@ -180,7 +180,7 @@ class Reproducer extends Actor {
             if (a._2._2 > b._2._2) a else b)
 
         destination !('migration, (res._1, res._2._1))
-        profiler !('migration, (res._1, res._2._1), new Date().getTime())
+        profiler !('migration, (res._1, res._2._1), new Date().getTime)
       }
 
     case 'finalize =>

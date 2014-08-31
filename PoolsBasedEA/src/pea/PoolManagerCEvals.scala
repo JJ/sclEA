@@ -1,5 +1,6 @@
 package pea
 
+import java.util.Comparator
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.{Actor, ActorRef}
@@ -18,8 +19,8 @@ class PoolManagerCEvals(problem: Problem, cEvaluations: Int, manager: ActorRef, 
   var Evaluations: Int = _
   var Emigrations: Int = _
 
-  val p2Rep = new ReproducersPool[TIndEval]()
-  val p2Eval = new EvaluatorsPool[TIndividual](problem.getPop())
+  var p2Rep: ReproducersPool[TIndEval] = _
+  var p2Eval: EvaluatorsPool[TIndividual] = _
 
   override def receive: Receive = {
     case ('migrantsDestiny, mDestiny: ActorRef) =>
@@ -31,14 +32,22 @@ class PoolManagerCEvals(problem: Problem, cEvaluations: Int, manager: ActorRef, 
       Emigrations += 1
 
     case 'start =>
-      val pResultObtained = Promise[TIndEval]()
+      p2Rep = new ReproducersPool[TIndEval]()
+      p2Eval = new EvaluatorsPool[TIndividual](problem.getPop())
+      var bestSolution = new TIndEval(null, -1)
+      val pResultObtained = Promise[Unit]()
       pResultObtained.future.onSuccess({
-        case r => manager !('resultObtained, r, Evaluations, Emigrations)
+        case _ => manager !('resultObtained, bestSolution, Evaluations, Emigrations)
       })
       Evaluations = 0
-      var bestSolution = new TIndEval(null, -1)
       val nFutures = new AtomicInteger(0)
-      def mkFuture[T](inds2Eval: List[T], feeder: => List[T], beginAction: List[T] => Any, endAction: (Any) => Unit, cond: => Boolean): Future[Any] = {
+      def mkFuture[T](inds2Eval: List[T], // input of the function to be excecuted by the actual future
+                      feeder: => List[T], // producer of the input for the new future created at onSuccess of the actual future,
+                      // needed because it is responsability of the central excecution, it'snt of any future.
+                      beginAction: List[T] => Any, // function to be excecuted by the actual future
+                      endAction: (Any) => Unit, // function to be excecuted when the actual future ends
+                      cond: => Boolean // function that control the repetition of the algorithm.
+                       ): Future[Any] = {
         val res = Future {
           beginAction(inds2Eval)
         }
@@ -52,9 +61,7 @@ class PoolManagerCEvals(problem: Problem, cEvaluations: Int, manager: ActorRef, 
               mkFuture(ninds2Eval, feeder, beginAction, endAction, cond)
             }
             else {
-              if (!pResultObtained.isCompleted) {
-                pResultObtained.success(bestSolution)
-              }
+              pResultObtained.trySuccess()
               if (nVal == 0) {
                 manager ! 'allFuturesFinished
               }
@@ -85,8 +92,7 @@ class PoolManagerCEvals(problem: Problem, cEvaluations: Int, manager: ActorRef, 
         val iEvals1 = p2Rep.extractElements(problem.config.ReproducersCapacity).toList
         mkFuture[TIndEval](iEvals1, p2Rep.extractElements(problem.config.ReproducersCapacity).toList,
           (iEvals: List[TIndEval]) => {
-            val res = Reproducer.reproduce(iEvals.toList)
-            res
+            Reproducer.reproduce(iEvals.toList)
           }, (r1: Any) => {
             val rResult = r1.asInstanceOf[TPopulation]
             if (rResult.length > 0) {

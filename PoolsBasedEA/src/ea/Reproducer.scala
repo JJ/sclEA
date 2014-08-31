@@ -36,12 +36,12 @@ object Reproducer {
     val i1 = new TIndividual()
     val i2 = new TIndividual()
     val indLength = p._1.length
-    val cPoint = config.rand.nextInt(indLength - 1) + 1
-    for (i <- 0 to cPoint - 1) {
+    val cPoint = config.rand.nextInt(indLength - 1)
+    for (i <- 0 to cPoint) {
       i1 += p._1(i)
       i2 += p._2(i)
     }
-    for (i <- cPoint to indLength - 1) {
+    for (i <- cPoint + 1 to indLength - 1) {
       i1 += p._2(i)
       i2 += p._1(i)
     }
@@ -65,9 +65,17 @@ object Reproducer {
       res += i._1
       res += i._2
     }
+
     if (lenSubPop % 2 == 1) {
       res += iEvals(0)._1
     }
+
+    for(i <- 0 to res.length - 1) {
+      if (config.rand.nextDouble() < config.PMutation)
+        mutate(res(i))
+    }
+
     res
   }
+
 }

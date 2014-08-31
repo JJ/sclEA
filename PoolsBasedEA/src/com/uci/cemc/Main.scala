@@ -15,10 +15,8 @@ object Main extends App {
   val cnf = g.fromJson(fr, classOf[ExperimentConfig])
   val obj = new MaxSATProblem(cnf, "./problems/uf100-01.cnf") with FutureParEA
 
-  //  obj.runParCEvals((res, ev, em) => println(res._2))
-
   if (args.length < 1)
-    println("Missing parameters")
+    println("Missing parameters.")
   else {
     args(0) match {
       case "seqfq" =>
@@ -52,7 +50,6 @@ object Main extends App {
         val endTime = new Date().getTime * 1000
         val res = new SeqRes(endTime - initTime, indRes._2, obj.Evaluations)
         println(g.toJson(res))
-
     }
   }
 

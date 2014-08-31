@@ -21,7 +21,5 @@ class TPopulation extends ArrayBuffer[TIndividual] {
 class TIndEval(p1: TIndividual, p2: Long) extends Tuple2[TIndividual, Long](p1, p2) with Comparable[TIndEval] {
   override def compareTo(o: TIndEval): Int = this._2.compareTo(o._2)
 
-  override def clone(): TIndEval = {
-    new TIndEval(this._1, this._2)
-  }
+  override def clone(): TIndEval = new TIndEval(this._1.clone(), this._2)
 }
