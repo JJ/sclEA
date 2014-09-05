@@ -6,6 +6,5 @@
     "PopSize": 256,
     "Evaluations": 5000,
     "ChromosomeSize": 128,
-    "IslandsCount": 3,
     "PMutation": 0.3
 }

@@ -4,7 +4,6 @@
     "ReproducersCapacity": 50,
     "EvaluatorsCount": 30,
     "ReproducersCount": 10,
-    "IslandsCount": 2,
     "PMutation": 0.3,
     "EvaluatorsCapacity": 50
 }

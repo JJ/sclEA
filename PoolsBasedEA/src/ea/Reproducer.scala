@@ -24,9 +24,13 @@ object Reproducer {
     val nPar = pop.length
     for (i <- 0 to n - 1) {
       val m1 = config.rand.nextInt(nPar)
-      val m2 = config.rand.nextInt(nPar)
+      var m2 = config.rand.nextInt(nPar)
       val i1 = pop(m1).clone()
-      val i2 = pop(m2).clone()
+      var i2 = pop(m2).clone()
+      while (i1.eq(i2)) {
+        m2 = config.rand.nextInt(nPar)
+        i2 = pop(m2).clone()
+      }
       res += Tuple2[TIndividual, TIndividual](i1, i2)
     }
     res.toList
@@ -70,7 +74,7 @@ object Reproducer {
       res += iEvals(0)._1
     }
 
-    for(i <- 0 to res.length - 1) {
+    for (i <- 0 to res.length - 1) {
       if (config.rand.nextDouble() < config.PMutation)
         mutate(res(i))
     }
