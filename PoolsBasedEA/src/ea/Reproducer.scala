@@ -25,13 +25,10 @@ object Reproducer {
     for (i <- 0 to n - 1) {
       val m1 = config.rand.nextInt(nPar)
       var m2 = config.rand.nextInt(nPar)
-      val i1 = pop(m1).clone()
-      var i2 = pop(m2).clone()
-      while (i1.eq(i2)) {
+      while (pop(m1).eq(pop(m2))) {
         m2 = config.rand.nextInt(nPar)
-        i2 = pop(m2).clone()
       }
-      res += Tuple2[TIndividual, TIndividual](i1, i2)
+      res += Tuple2[TIndividual, TIndividual](pop(m1).clone(), pop(m2).clone())
     }
     res.toList
   }

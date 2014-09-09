@@ -20,18 +20,18 @@ object Main extends App {
     args(0) match {
 
       case "par" =>
-        val initTime = new Date().getTime * 1000
+        val initTime = System.nanoTime
         obj.runParCEvals(
           (indRes, ev) => {
-            val endTime = new Date().getTime * 1000
+            val endTime = System.nanoTime
             val res = new ParRes(ev, cnf.EvaluatorsCapacity, cnf.ReproducersCapacity, cnf.EvaluatorsCount, cnf.ReproducersCount, endTime - initTime, indRes._2)
             println(g.toJson(res))
           })
 
       case _ => // case "seq"
-        val initTime = new Date().getTime * 1000
+        val initTime = System.nanoTime
         val indRes = obj.runSeqCEvals()
-        val endTime = new Date().getTime * 1000
+        val endTime = System.nanoTime
         val res = new SeqRes(endTime - initTime, indRes._2, obj.Evaluations)
         println(g.toJson(res))
     }
