@@ -8,27 +8,29 @@ object Reproducer {
 
   var config: ExperimentConfig = _
 
-  def enhanceParents(pop: List[TIndEval]): TPopulation = {
-    val res = new TPopulation()
-    val n = pop.length
-    for (i <- 0 to n - 1) {
-      for (j <- 0 to n - i - 1) {
-        res += pop(i)._1.clone()
-      }
-    }
-    res
-  }
-
-  def parentsSelector(pop: TPopulation, n: Int): List[(TIndividual, TIndividual)] = {
+  def parentsSelector(pop: List[TIndEval], n: Int): List[(TIndividual, TIndividual)] = {
     val res = new ArrayBuffer[(TIndividual, TIndividual)]()
     val nPar = pop.length
     for (i <- 0 to n - 1) {
-      val m1 = config.rand.nextInt(nPar)
-      var m2 = config.rand.nextInt(nPar)
-      while (pop(m1).eq(pop(m2))) {
-        m2 = config.rand.nextInt(nPar)
+      val n1 = config.rand.nextInt(nPar)
+      val n2 = config.rand.nextInt(nPar)
+      val n3 = config.rand.nextInt(nPar)
+      val i1 = pop(n1).clone()
+      val i2 = pop(n2).clone()
+      val i3 = pop(n3).clone()
+      if (i1._2 < i2._2) {
+        if (i1._2 < i3._2) {
+          res += Tuple2[TIndividual, TIndividual](i2._1, i3._1)
+        } else {
+          res += Tuple2[TIndividual, TIndividual](i2._1, i1._1)
+        }
+      } else {
+        if (i2._2 < i3._2) {
+          res += Tuple2[TIndividual, TIndividual](i1._1, i3._1)
+        } else {
+          res += Tuple2[TIndividual, TIndividual](i2._1, i1._1)
+        }
       }
-      res += Tuple2[TIndividual, TIndividual](pop(m1).clone(), pop(m2).clone())
     }
     res.toList
   }
@@ -59,23 +61,19 @@ object Reproducer {
   def reproduce(iEvals: List[TIndEval]): TPopulation = {
     val res = new TPopulation()
     val lenSubPop = iEvals.length
-    val p2Rep = enhanceParents(iEvals)
-    val parents = parentsSelector(p2Rep, lenSubPop / 2)
+    val parents = parentsSelector(iEvals, lenSubPop / 2)
     for (ind <- parents) {
       val i = crossover(ind)
       res += i._1
       res += i._2
     }
-
     if (lenSubPop % 2 == 1) {
       res += iEvals(0)._1
     }
-
     for (i <- 0 to res.length - 1) {
       if (config.rand.nextDouble() < config.PMutation)
         mutate(res(i))
     }
-
     res
   }
 

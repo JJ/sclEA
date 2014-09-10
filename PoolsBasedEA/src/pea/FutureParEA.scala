@@ -1,21 +1,22 @@
 package pea
 
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicInteger
 
+import akka.actor.ActorSystem
 import ea._
 import pea.ds.{EvaluatorsPool, ReproducersPool}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
 trait FutureParEA {
   this: Problem =>
-
   def runParCEvals(resultObtained: (TIndEval, Long) => Unit): Unit = {
     val executor = Executors.newCachedThreadPool()
     implicit val executionContext = ExecutionContext.fromExecutor(executor)
+    val system = ActorSystem()
     config.setData(fitnessFunction, (v) => false, (i) => {})
     Evaluator.config = config
     Reproducer.config = config
@@ -24,11 +25,14 @@ trait FutureParEA {
     val p2Eval = new EvaluatorsPool[TIndividual](getPop())
     var bestSolution = new TIndEval(null, -1)
     Evaluations = 0
-    val nFutures = new AtomicInteger(0)
 
     val pResultObtained = Promise[Unit]()
     pResultObtained.future.onSuccess({
       case _ => resultObtained(bestSolution, Evaluations)
+        akka.pattern.after(2 second, using = system.scheduler)(Future {
+          executor.shutdown()
+          system.shutdown()
+        })
     })
     def mkWorker[T](inds2Eval: List[T], // input of the function to be excecuted by the actual future
                     feeder: => List[T], // producer of the input for the new future created at onSuccess of the actual future,
@@ -40,20 +44,15 @@ trait FutureParEA {
       val res = Future {
         beginAction(inds2Eval)
       }
-      nFutures.incrementAndGet()
       res.onSuccess {
         case eResult: Any =>
           endAction(eResult)
-          val nVal = nFutures.decrementAndGet()
           if (cond) {
             val ninds2Eval = feeder
             mkWorker(ninds2Eval, feeder, beginAction, endAction, cond)
           }
           else {
             pResultObtained.trySuccess()
-            if (nVal == 0) {
-              executor.shutdown()
-            }
           }
       }
       res
