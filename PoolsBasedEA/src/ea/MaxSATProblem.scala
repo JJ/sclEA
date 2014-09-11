@@ -47,6 +47,4 @@ class MaxSATProblem(conf: ExperimentConfig, instanceFileName: String) extends Pr
 
   override def qualityFitnessFunction(v: Long): Boolean = v > 405
 
-  override def doWhenQualityFitnessTrue(i: TIndEval) {}
-
 }

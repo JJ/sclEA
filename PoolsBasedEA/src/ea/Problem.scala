@@ -11,8 +11,6 @@ abstract class Problem {
 
   def qualityFitnessFunction(v: Long): Boolean
 
-  def doWhenQualityFitnessTrue(i: TIndEval)
-
   private[this] def genIndividual(): TIndividual = {
     val res = new TIndividual()
     for (i <- 1 to config.ChromosomeSize) {

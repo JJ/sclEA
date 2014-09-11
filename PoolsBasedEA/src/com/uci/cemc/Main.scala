@@ -19,7 +19,7 @@ object Main extends App {
   else {
     args(0) match {
 
-      case "par" =>
+      case "pce" =>
         val initTime = System.nanoTime
         obj.runParCEvals(
           (indRes, ev) => {
@@ -28,7 +28,23 @@ object Main extends App {
             println(g.toJson(res))
           })
 
-      case _ => // case "seq"
+      case "pfq" =>
+        val initTime = System.nanoTime
+        obj.runParFitnessQuality(
+          (indRes, ev) => {
+            val endTime = System.nanoTime
+            val res = new ParRes(ev, cnf.EvaluatorsCapacity, cnf.ReproducersCapacity, cnf.EvaluatorsCount, cnf.ReproducersCount, endTime - initTime, indRes._2)
+            println(g.toJson(res))
+          })
+
+      case "sfq" =>
+        val initTime = System.nanoTime
+        val indRes = obj.runSeqFitnessQuality()
+        val endTime = System.nanoTime
+        val res = new SeqRes(endTime - initTime, indRes._2, obj.Evaluations)
+        println(g.toJson(res))
+
+      case _ => // case "sce"
         val initTime = System.nanoTime
         val indRes = obj.runSeqCEvals()
         val endTime = System.nanoTime

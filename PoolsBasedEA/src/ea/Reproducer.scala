@@ -53,7 +53,7 @@ object Reproducer {
 
   def changeGen(aByte: Byte): Byte = if (aByte == 0) 1.asInstanceOf[Byte] else 0.asInstanceOf[Byte]
 
-  def mutate(ind: TIndividual) {
+  def mutate(ind: TIndividual): Unit = {
     val pos = config.rand.nextInt(ind.length)
     ind(pos) = changeGen(ind(pos))
   }

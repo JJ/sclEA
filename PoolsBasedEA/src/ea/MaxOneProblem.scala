@@ -11,7 +11,4 @@ class MaxOneProblem(conf: ExperimentConfig) extends Problem {
   override def qualityFitnessFunction(v: Long): Boolean = {
     v > config.ChromosomeSize - 2
   }
-
-  override def doWhenQualityFitnessTrue(i: TIndEval) {
-  }
 }

@@ -24,4 +24,25 @@ trait SeqEA {
     bestSolution
   }
 
+  def runSeqFitnessQuality(): TIndEval = {
+    var alcanzadaSolucion = false
+    var bestSolution = new TIndEval(null, -1)
+    config.setData(fitnessFunction, qualityFitnessFunction, (i) => {
+      bestSolution = i
+      alcanzadaSolucion = true
+    })
+    Evaluator.config = config
+    Reproducer.config = config
+
+    var p2Eval = getPop()
+    Evaluations = 0
+    while (!alcanzadaSolucion) {
+      var indEvals = Evaluator.evaluate(p2Eval.toList)
+      Evaluations += indEvals.length
+      indEvals = indEvals.sortWith(_.compareTo(_) > 0)
+      p2Eval = Reproducer.reproduce(indEvals.toList)
+    }
+    bestSolution
+  }
+
 }
