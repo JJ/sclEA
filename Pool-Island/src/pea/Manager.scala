@@ -41,9 +41,8 @@ class Manager extends Actor {
       if (instances.isEmpty) {
         println("All ends!")
 
-        //if ("yes" == "yes") {
         val w = new PrintWriter(new File(problem.parallelOutputFilename))
-        w.write("EvolutionDelay,NumberOfEvals,Emigrations,EvaluatorsCount,ReproducersCount,IslandsCount,BestSol\n")
+        w.write("EvolutionDelay,Evaluations,Emigrations,EvaluatorsCount,ReproducersCount,IslandsCount,BestSol\n")
 
         for (r <- results) {
           val ec = r.asInstanceOf[HashMap[Symbol, Any]]('conf).asInstanceOf[HashMap[Symbol, Any]]('evaluatorsCount).asInstanceOf[Int]
@@ -57,7 +56,6 @@ class Manager extends Actor {
           w.write(s"$evolutionDelay,$numberOfEvals,$nEmig,$ec,$rc,$nIslands,$bestSol\n")
         }
         w.close()
-        //}
 
         system.shutdown()
         sheduling.ShedulingUtility.shutdown()
@@ -67,6 +65,7 @@ class Manager extends Actor {
 
     case 'mkExperiment =>
       if (!instances.isEmpty) {
+
         val (now, name) = instances.remove(0)
 
         val tt = new Date().getTime()

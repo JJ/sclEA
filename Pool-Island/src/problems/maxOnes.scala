@@ -19,7 +19,7 @@ object maxOnes extends protocols.Problem {
   
   val r = new Random()
 
-  def terminationCondition: Symbol = Symbol(data.getTerminationCondition())
+//  def terminationCondition: Symbol = Symbol(data.getTerminationCondition())
   //    'fitnessTerminationCondition
   //'cantEvalsTerminationCondition
 

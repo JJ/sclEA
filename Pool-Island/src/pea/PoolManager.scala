@@ -11,18 +11,17 @@
 
 package pea
 
-import akka.actor.{Actor, Props, ActorSystem, ActorRef}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+
 import scala.collection.mutable.HashMap
 import scala.util.Random
 
 //import java.util.Date
 
-import sheduling.ShedulingUtility
 import java.util.concurrent.Callable
 
-import akka.event.LoggingReceive
-
 import akka.event.Logging
+import sheduling.ShedulingUtility
 
 object PoolManager {
   var poolSize: Int = _
@@ -49,10 +48,6 @@ class PoolManager extends Actor {
 
   //def receive = LoggingReceive {
   def receive = {
-
-    case 'finalizeAllWorkers =>
-      for (e <- evals ++ reps)
-        e ! 'finalize
 
     case ('initEvaluations, cant: Int) =>
       evaluations = cant
@@ -141,32 +136,49 @@ class PoolManager extends Actor {
         //        system.stop(pid)
       }
 
-    case ('evalDone, pid: ActorRef, n: Int) =>
+    case ('solutionReachedbyEvaluator, (ind: List[AnyVal], fit: Int), pid: ActorRef) =>
+      log.debug("solutionReachedbyEvaluator")
+      if (active) {
+        manager !('solutionReached, self, (ind, fit))
+        self ! 'finalize
+        active = false
+      }
+
+    case ('evalDone, pid: ActorRef, n: Int, bs: (List[AnyVal], Int)) =>
       log.debug("evalDone")
       if (active) {
-
-        manager !('evalDone, self, n)
-
-        val evaluatorsCapacity = problem.terminationCondition match {
-          case 'fitnessTerminationCondition =>
-            problem.evaluatorsCapacity
-
-          case _ =>
-            val teval = evaluations - n
-            evaluations = if (teval > 0) teval else 0
-            Math.min(evaluations, problem.evaluatorsCapacity)
+        manager !('evalDone, self, n, bs)
+        val evaluatorsCapacity = {
+          val teval = evaluations - n
+          evaluations = if (teval > 0) teval else 0
+          Math.min(evaluations, problem.evaluatorsCapacity)
         }
-
         if (evaluatorsCapacity > 0) {
           pid !('evaluate, table, evaluatorsCapacity)
         } else {
-          evaluationsDone()
+          if (active) {
+            manager !('numberOfEvaluationsReached, self, bs)
+            //      self ! 'finalize
+            active = false
+          }
         }
-
       } else {
         pid ! 'finalize
         //        system.stop(pid)
       }
+
+    case 'finalizeAllWorkers =>
+      for (e <- evals ++ reps)
+        e ! 'finalize
+
+    case 'deactivate =>
+      log.debug("deactivate")
+      active = false
+      self ! 'finalizeAllWorkers
+
+//    case 'evaluationsDone =>
+//      log.debug("evaluationsDone")
+//      evaluationsDone()
 
     case 'sReps =>
       log.debug("sReps")
@@ -177,23 +189,6 @@ class PoolManager extends Actor {
       log.debug("sEvals")
       for (e <- evals)
         e !('evaluate, table, 0)
-
-    case 'deactivate =>
-      log.debug("deactivate")
-      active = false
-      self ! 'finalizeAllWorkers
-
-    case ('solutionReachedbyEvaluator, (ind: List[AnyVal], fit: Int), pid: ActorRef) =>
-      log.debug("solutionReachedbyEvaluator")
-      if (active) {
-        manager !('solutionReached, self, (ind, fit))
-        self ! 'finalize
-        active = false
-      }
-
-    case 'evaluationsDone =>
-      log.debug("evaluationsDone")
-      evaluationsDone()
 
     case ('evalEmpthyPool, pid: ActorRef) =>
       log.debug("evalEmpthyPool")
@@ -221,40 +216,30 @@ class PoolManager extends Actor {
       system.stop(self)
   }
 
-  def evaluationsDone() {
+//  def bestSolution(): (AnyRef, Int) = {
+//    val evals = table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).toList
+//    if (evals.isEmpty) (null, -1)
+//    else {
+//      val red = evals.reduce(
+//        (a: (List[AnyVal], (Int, Int)), b: (List[AnyVal], (Int, Int))) =>
+//          if (a._2._1 < b._2._1) b else a)
+//
+//      (red._1, red._2._1)
+//    }
+//
+//  }
 
-    if (active) {
-      manager !('numberOfEvaluationsReached, self, bestSolution())
-      //      self ! 'finalize
-      active = false
-    }
-
-  }
-
-  def bestSolution(): (AnyRef, Int) = {
-    val evals = table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).toList
-    if (evals.isEmpty) (null, -1)
-    else {
-      val red = evals.reduce(
-        (a: (List[AnyVal], (Int, Int)), b: (List[AnyVal], (Int, Int))) =>
-          if (a._2._1 < b._2._1) b else a)
-
-      (red._1, red._2._1)
-    }
-
-  }
-
-  def logTable() {
-
-    val c1 = table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 1).size
-    val c2 = table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).size
-    val cant = table.keys.size
-
-    println("En 1: " + c1)
-    println("En 2: " + c2)
-
-    println("Total: " + cant + "\n")
-
-  }
+  //  def logTable() {
+  //
+  //    val c1 = table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 1).size
+  //    val c2 = table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).size
+  //    val cant = table.keys.size
+  //
+  //    println("En 1: " + c1)
+  //    println("En 2: " + c2)
+  //
+  //    println("Total: " + cant + "\n")
+  //
+  //  }
 
 }

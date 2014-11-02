@@ -14,12 +14,10 @@ package pea
 import seqEA._
 
 object ExperimentRun extends App {
-
-   if (args.length > 0 && args(0).toLowerCase()=="seq")
-     seqEA_Experiment.run()
-     else
-       pEAExperiment.run()
-
+  if (args.length > 0 && args(0).toLowerCase() == "seq")
+    seqEA_Experiment.run()
+  else
+    pEAExperiment.run()
 }
 
 //  val customConf = ConfigFactory.parseString(
@@ -46,4 +44,4 @@ object ExperimentRun extends App {
 //}
 //      """)
 
-  //var system: ActorSystem = ActorSystem("pEAs", ConfigFactory.load(customConf))
+//var system: ActorSystem = ActorSystem("pEAs", ConfigFactory.load(customConf))

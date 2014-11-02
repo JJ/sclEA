@@ -13,7 +13,7 @@ package protocols
 
 trait Problem {
 
-  def terminationCondition: Symbol
+//  def terminationCondition: Symbol
   def evaluatorsCount: Int
   def evaluatorsCapacity: Int
   def reproducersCount: Int

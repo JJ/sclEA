@@ -11,8 +11,8 @@
 
 package problems
 
-import scala.util.Random
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 
 class TMaxSAT_Problem(val clauseLength: Int, val varsCount: Int, val clausesCount: Int, val clauses: List[List[(Boolean, Int)]])
 
@@ -22,23 +22,28 @@ object maxSAT extends protocols.Problem {
 
   val data = config.GAConfig.loadFromJSON("maxSATConfig.json")
 
-  def terminationCondition: Symbol = Symbol(data.getTerminationCondition())
+  //  def terminationCondition: Symbol =  'fitnessTerminationCondition
+
+  //    Symbol(data.getTerminationCondition())
   //    'fitnessTerminationCondition
   //'cantEvalsTerminationCondition
 
   def seqOutputFilename = data.getSeqOutputFilename()
+
   def parallelOutputFilename = data.getParallelOutputFilename()
 
   def evaluatorsCount = data.getEvaluatorsCount()
+
   def reproducersCount = data.getReproducersCount()
 
   def evaluatorsCapacity = data.getEvaluatorsCapacity()
+
   def reproducersCapacity = data.getReproducersCapacity()
 
   def popSize = data.getPopSize()
 
   def evaluations = data.getEvaluations()
-  
+
   def repetitions = data.getRepetitions()
 
   def chromosomeSize = solution.varsCount
@@ -77,12 +82,10 @@ object maxSAT extends protocols.Problem {
 
       l = it.next
     }
-
     new TMaxSAT_Problem(clauseLength, varsCount, clausesCount, clauses.toList)
-
   }
 
-  val solution = loadSolution("f:/Mis Documentos/PhD/src/sclEA/Pool-Island/problems/uf100-01.cnf")
+  val solution = loadSolution("./problems/uf100-01.cnf")
 
   def function(pInd: List[AnyVal]): Int = {
 
@@ -96,7 +99,7 @@ object maxSAT extends protocols.Problem {
 
   }
 
-  def fitnessTerminationCondition(ind: List[AnyVal], fit: Int): Boolean = fit > 395
+  def fitnessTerminationCondition(ind: List[AnyVal], fit: Int): Boolean = fit >= 424
 
   def changeGen(g: Any): Any = !g.asInstanceOf[Boolean]
 

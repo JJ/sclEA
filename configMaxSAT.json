@@ -1,9 +1,0 @@
-{
-    "Evaluations": 5000,
-    "PopSize": 1024,
-    "ReproducersCapacity": 50,
-    "EvaluatorsCount": 30,
-    "ReproducersCount": 10,
-    "PMutation": 0.3,
-    "EvaluatorsCapacity": 50
-}

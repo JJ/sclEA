@@ -17,7 +17,7 @@ object problem {
     //      'maxOnes
     'maxSAT
 
-  def terminationCondition: Symbol = conf.terminationCondition
+//  def terminationCondition: Symbol = conf.terminationCondition
   
   def repetitions: Int = conf.repetitions
 
