@@ -14,8 +14,10 @@ package pea
 import java.util.Date
 
 import akka.actor.{Actor, ActorRef, ActorSystem}
+import seqEA.TIndEval
 
-import scala.collection.mutable.{ArrayBuffer, HashMap}
+import scala.collection.mutable
+import scala.collection.mutable.HashMap
 
 class IslandManager extends Actor {
 
@@ -25,22 +27,22 @@ class IslandManager extends Actor {
   var endEvol: Boolean = _
   var cierre: Boolean = _
   var numberOfEvals: Int = _
-//  var solutions: ArrayBuffer[(List[AnyVal], Int)] = _
-  var bSolution: (List[AnyVal], Int) = (List(), -1)
+  //  var solutions: ArrayBuffer[(List[AnyVal], Int)] = _
+  var bSolution: TIndEval = new TIndEval(null, -1)
 
   var system: ActorSystem = _
 
   def receive = {
 
     case 'start =>
-      profiler !('initEvol, new Date().getTime())
+      profiler !('initEvol, new Date().getTime)
       for (p <- pools) {
         // All executing units to work!
         p ! 'sReps
         p ! 'sEvals
       }
 
-    case ('init, conf: HashMap[Symbol, Any]) =>
+    case ('init, conf: mutable.HashMap[Symbol, Any]) =>
       pools = conf('pools).asInstanceOf[Set[ActorRef]]
       profiler = conf('profiler).asInstanceOf[ActorRef]
       manager = conf('manager).asInstanceOf[ActorRef]
@@ -49,10 +51,10 @@ class IslandManager extends Actor {
       endEvol = false
       numberOfEvals = 0
 
-//      solutions = ArrayBuffer[(List[AnyVal], Int)]()
+      //      solutions = ArrayBuffer[(List[AnyVal], Int)]()
       cierre = false
 
-    case ('evalDone, pid: ActorRef, n: Int, bs: (List[AnyVal], Int)) =>
+    case ('evalDone, pid: ActorRef, n: Int, bs: TIndEval) =>
       if (pools contains pid) {
         if (bSolution._2 < bs._2) {
           bSolution = bs
@@ -73,24 +75,23 @@ class IslandManager extends Actor {
       for (p <- pools)
         p ! 'deactivate
 
-    case ('solutionReached, pid: ActorRef, sol: (List[AnyVal], Int)) =>
+    case ('solutionReached, pid: ActorRef, sol: TIndEval) =>
       if (pools.contains(pid)) {
         if (!endEvol) {
-          profiler !('endEvol, (new Date()).getTime(), numberOfEvals, sol._2)
+          profiler !('endEvol, new Date().getTime, numberOfEvals, sol._2)
           endEvol = true
         }
         self ! 'deactivate
       }
 
-    case ('numberOfEvaluationsReached, pid: ActorRef, bs: (List[AnyVal], Int)) =>
+    case ('numberOfEvaluationsReached, pid: ActorRef, bs: TIndEval) =>
       if (pools.contains(pid)) {
-//        solutions += bestSol
         if (bSolution._2 < bs._2) {
           bSolution = bs
         }
         pools -= pid
         if (pools.isEmpty) {
-          profiler !('endEvol, (new Date()).getTime(), numberOfEvals, bSolution._2)
+          profiler !('endEvol, new Date().getTime, numberOfEvals, bSolution._2)
           endEvol = true
         }
         pid ! 'finalizeAllWorkers
@@ -100,9 +101,5 @@ class IslandManager extends Actor {
       profiler ! 'experimentEnd
       system.stop(self)
   }
-
-  //  def bestSolution() =
-  //    solutions.reduce((a: (List[AnyVal], Int), b: (List[AnyVal], Int)) =>
-  //      if (a._2 < b._2) b else a)
 
 }

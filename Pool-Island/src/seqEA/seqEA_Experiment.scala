@@ -1,11 +1,14 @@
 package seqEA
 
-import java.io._
 import java.util.Date
 
+import com.google.gson.Gson
+import ea.entities.SeqRes
 import pea._
+import pea.ds.{EvaluatorsPool, ReproducersPool}
 
-import scala.collection.mutable.{ArrayBuffer, HashMap}
+import scala.collection.JavaConversions._
+import scala.collection.mutable.ArrayBuffer
 
 object seqEA_Experiment {
 
@@ -16,13 +19,15 @@ object seqEA_Experiment {
 
     def terminationCondition(): Boolean = solutionFound || evaluations <= 0
 
-    def runSeqEA(initPool: HashMap[List[AnyVal], (Int, Int)]): (Boolean, Int, Int) = {
+    def runSeqEA(initPool: List[TIndividual]): (Boolean, Long, Int) = {
       evaluations = problem.evaluations
       solutionFound = false
 
-      var pool = initPool.clone
+      val p2Rep = new ReproducersPool[TIndEval]()
+      val p2Eval = new EvaluatorsPool[TIndividual](initPool)
+
       var evalDone = 0
-      var bSolution: (List[AnyVal], Int) = (List(), -1)
+      var bSolution: TIndEval = new TIndEval(null, -1)
 
       while (!terminationCondition()) {
         //        println(evaluations + " --> " + bSolution._2)
@@ -34,29 +39,24 @@ object seqEA_Experiment {
         var newEvalDone = 0
         if (evaluatorsCapacity > 0) {
           val (resEval, solFound, nSels, bs) = Evaluator.evaluate(
-            sels = pool.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 1).keys.take(evaluatorsCapacity)
+            sels = p2Eval.extractElements(evaluatorsCapacity).toList
           )
           if (resEval) {
-            val pnSels = nSels.map((p: (List[AnyVal], Int)) => (p._1, (p._2, 2)))
-            pool ++= pnSels
-            newEvalDone = pnSels.size
+            p2Rep.append(nSels)
+            newEvalDone = nSels.size
             if (bSolution._2 < bs._2) bSolution = bs
             solutionFound = solFound
           }
-          val tFiltered = pool.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).keys.toList
-          val population = tFiltered.map(i => (i, pool(i)._1))
-          val subpop = Reproducer.extractSubpopulation(population, problem.reproducersCapacity)
-          val (res, resultData) =
-            Reproducer.evolve(
-              subpop,
-              parentsCount = subpop.size / 2)
+
+          val subpop = p2Rep.extractElements(problem.reproducersCapacity).toList
+          val (res, resultData) = Reproducer.evolve(
+            subpop,
+            parentsCount = subpop.size / 2
+          )
 
           if (res) {
-            val (noParents, nInds, bestParents) = resultData
-            pool = Reproducer.mergeFunction(
-              pool, subpop,
-              noParents, nInds,
-              bestParents, initPool.size)
+            val (noParents, nInds, bp) = resultData
+            p2Eval.append(nInds)
           }
 
           evalDone = newEvalDone
@@ -68,31 +68,32 @@ object seqEA_Experiment {
 
     def testsRunSeqEA() = {
 
-      val tt = new Date().getTime()
-      println(s"Doing experiment (time -> $tt)")
+      //      val tt = new Date().getTime()
+      //      println(s"Doing experiment (time -> $tt)")
 
-      val initEvol = new Date().getTime()
+      val initEvol = new Date().getTime
 
-      val p = HashMap[List[AnyVal], (Int, Int)]()
+      val res = runSeqEA(problem.genInitPop().toList)
 
-      p ++= (for (i <- problem.genInitPop()) yield (i, (-1, 1)))
-
-      val res = runSeqEA(p)
-
-      (new Date().getTime() - initEvol, res)
+      (new Date().getTime - initEvol, res)
     }
 
-    def calculatePopulationSize(): ArrayBuffer[(Long, Int, Int)] = {
-      val nRes = new ArrayBuffer[(Long, Int, Int)]()
+    def calculatePopulationSize(): ArrayBuffer[(Long, Long, Int)] = {
+      val nRes = new ArrayBuffer[(Long, Long, Int)]()
       val max = problem.repetitions
+      println(max)
       var i = 0
       var found = true
       while (i < max && found) {
+        println(1)
         val (time, (solFound, fitness, evals)) = testsRunSeqEA()
+        println(2)
         found = solFound
+        println(3)
         if (found) {
           nRes.append((time, fitness, evals))
         }
+        println(4)
         i += 1
       }
       if (!found) {
@@ -102,22 +103,26 @@ object seqEA_Experiment {
       nRes
     }
 
-    val nRes: ArrayBuffer[(Long, Int, Int)] = calculatePopulationSize()
+    //    val nRes: ArrayBuffer[(Long, Long, Int)] = calculatePopulationSize()
+
+    val (evolutionDelay, (_, bestSol, evals)) = testsRunSeqEA()
+    val res = new SeqRes(evolutionDelay, bestSol, evals)
+    val g = new Gson()
+    println(g.toJson(res))
 
     //    val nRes =
     //      for (_ <- 1 to problem.repetitions)
-    //    {val (evolutionDelay, (_, bestSol, evals)) = testsRunSeqEA()
-    //    yield (evolutionDelay, bestSol, evals)
-    // }
-
-    val w = new PrintWriter(new File(problem.seqOutputFilename))
-    w.write("EvolutionDelay,Evaluations,BestSol\n")
-    for ((evolutionDelay, bestSol, evals) <- nRes) {
-      w.write(s"$evolutionDelay,$evals,$bestSol\n")
-    }
-    w.close()
-
-    println("Ends!")
+    //        yield testsRunSeqEA()
+    //
+    //
+    //    val w = new PrintWriter(new File(problem.seqOutputFilename))
+    //    w.write("EvolutionDelay,Evaluations,BestSol\n")
+    //    for ((evolutionDelay, (_, bestSol, evals)) <- nRes) {
+    //      w.write(s"$evolutionDelay,$evals,$bestSol\n")
+    //    }
+    //    w.close()
+    //
+    //    println("Ends!")
   }
 
 }

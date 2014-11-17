@@ -12,6 +12,7 @@
 package pea
 
 import akka.actor.{ Actor, Props, ActorSystem, ActorRef }
+import scala.collection.mutable
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ArrayBuffer
 
@@ -19,7 +20,7 @@ import Evaluator._
 
 class Profiler extends Actor {
 
-  var conf: HashMap[Symbol, Any] = _
+  var conf: mutable.HashMap[Symbol, Any] = _
   var manager: ActorRef = _
   var initEvol: Long = _
   var nIslands: Int = _
@@ -27,8 +28,8 @@ class Profiler extends Actor {
   var emigrations: ArrayBuffer[Long] = _
 
   var evolutionDelay: Long = _
-  var numberOfEvals: Int = _
-  var bestSolution: Int = _
+  var numberOfEvals: Long = _
+  var bestSolution: Long = _
 
   def receive = {
 
@@ -39,7 +40,7 @@ class Profiler extends Actor {
       emigrations = new ArrayBuffer[Long]()
       iterations = new ArrayBuffer[(Int, Int, Double)]
 
-    case ('configuration, nConf: HashMap[Symbol, Any], nNIslands: Int) =>
+    case ('configuration, nConf: mutable.HashMap[Symbol, Any], nNIslands: Int) =>
       conf = nConf.clone()
       nIslands = nNIslands
       emigrations.clear()
@@ -62,19 +63,23 @@ class Profiler extends Actor {
 */
 
     case 'experimentEnd =>
-      val reportData = HashMap[Symbol, Any]()
+      val reportData = mutable.HashMap[Symbol, Any]()
       reportData += ('evolutionDelay -> evolutionDelay)
       reportData += ('numberOfEvals -> numberOfEvals)
       reportData += ('nEmig -> emigrations.length)
       reportData += ('nIslands -> nIslands)
       reportData += ('bestSol -> bestSolution)
-      reportData += ('conf -> conf)
+      reportData += ('reproducersCount -> conf('reproducersCount))
+      reportData += ('evaluatorsCount -> conf('evaluatorsCount))
 
+      reportData += ('evaluatorsCapacity -> conf('evaluatorsCapacity))
+      reportData += ('reproducersCapacity -> conf('reproducersCapacity))
+//      println("Y los 'reproducersCount: " + conf('reproducersCount))
       manager ! ('experimentEnd, reportData)
 
-    case ('endEvol, t: Long, pNumberOfEvals: Int, pBestSolution: Int) =>
+    case ('endEvol, t: Long, pNumberOfEvals: Int, pBestSolution: Long) =>
       //val evolutionDelay = (t - initEvol) / 1000.0
-      evolutionDelay = (t - initEvol)
+      evolutionDelay = t - initEvol
       numberOfEvals = pNumberOfEvals
       bestSolution = pBestSolution
 

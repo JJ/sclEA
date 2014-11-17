@@ -11,42 +11,51 @@
 
 package problems
 
+import seqEA.TIndividual
+
 import scala.util.Random
 
 object maxOnes extends protocols.Problem {
 
   val data = config.GAConfig.loadFromJSON("maxOnesConfig.json")
-  
+
   val r = new Random()
 
-//  def terminationCondition: Symbol = Symbol(data.getTerminationCondition())
+  //  def terminationCondition: Symbol = Symbol(data.getTerminationCondition())
   //    'fitnessTerminationCondition
   //'cantEvalsTerminationCondition
 
-  def seqOutputFilename = data.getSeqOutputFilename()
-  def parallelOutputFilename = data.getParallelOutputFilename()
+  def seqOutputFilename = data.getSeqOutputFilename
 
-  def evaluatorsCount = data.getEvaluatorsCount()
-  def reproducersCount = data.getReproducersCount()
+  def parallelOutputFilename = data.getParallelOutputFilename
 
-  def evaluatorsCapacity = data.getEvaluatorsCapacity()
-  def reproducersCapacity = data.getReproducersCapacity()
+  def evaluatorsCount = data.getEvaluatorsCount
 
-  def popSize = data.getPopSize()
+  def reproducersCount = data.getReproducersCount
 
-  def evaluations = data.getEvaluations()
-  
-  def repetitions = data.getRepetitions()
+  def evaluatorsCapacity = data.getEvaluatorsCapacity
 
-  def chromosomeSize = data.getChromosomeSize()
+  def reproducersCapacity = data.getReproducersCapacity
 
-  def genInd(): List[AnyVal] =
-    (for (i <- 1 to chromosomeSize) yield r.nextInt(2)).mkString.toList
+  def popSize = data.getPopSize
 
-  def function(ind: List[AnyVal]) = (for (e <- ind if e == '1') yield 1).size
+  def evaluations = data.getEvaluations
 
-  def fitnessTerminationCondition(ind: List[AnyVal], fit: Int): Boolean = ind.length - fit < 25
+  def repetitions = data.getRepetitions
 
-  def changeGen(g: Any): Any = if (g == '1') '0' else '1'
+  def chromosomeSize = data.getChromosomeSize
 
+  def genInd(): TIndividual = {
+    val res = new TIndividual()
+    for (i <- 1 to chromosomeSize) {
+      res += r.nextInt(2).asInstanceOf[Byte]
+    }
+    res
+  }
+
+  def function(ind: TIndividual): Long = ind.count(_ == 1)
+
+  def fitnessTerminationCondition(ind: TIndividual, fit: Long): Boolean = fit > chromosomeSize - 2
+
+  def changeGen(aByte: Byte): Byte = if (aByte == 0) 1.asInstanceOf[Byte] else 0.asInstanceOf[Byte]
 }

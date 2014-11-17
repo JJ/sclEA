@@ -18,9 +18,11 @@ object pEAExperiment {
     eManager !('init, eProfiler, system)
     eProfiler !('init, eManager)
 
-    eManager !('session,
-      (for (_ <- 1 to problem.repetitions)
-      yield (() => Experiment.r2(eProfiler, eManager), "r2")).toList)
+    eManager ! ('mkExperiment, (() => Experiment.r2(eProfiler, eManager), "r2"))
+
+//    eManager !('session,
+//      (for (_ <- 1 to problem.repetitions)
+//      yield (() => Experiment.r2(eProfiler, eManager), "r2")).toList)
 
   }
 }

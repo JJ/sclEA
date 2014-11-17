@@ -11,10 +11,12 @@
 
 package problems
 
+import seqEA.TIndividual
+
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
-class TMaxSAT_Problem(val clauseLength: Int, val varsCount: Int, val clausesCount: Int, val clauses: List[List[(Boolean, Int)]])
+class TMaxSAT_Problem(val clauseLength: Int, val varsCount: Int, val clausesCount: Int, val clauses: List[List[(Byte, Int)]])
 
 object maxSAT extends protocols.Problem {
 
@@ -28,79 +30,80 @@ object maxSAT extends protocols.Problem {
   //    'fitnessTerminationCondition
   //'cantEvalsTerminationCondition
 
-  def seqOutputFilename = data.getSeqOutputFilename()
+  def seqOutputFilename = data.getSeqOutputFilename
 
-  def parallelOutputFilename = data.getParallelOutputFilename()
+  def parallelOutputFilename = data.getParallelOutputFilename
 
-  def evaluatorsCount = data.getEvaluatorsCount()
+  def evaluatorsCount = data.getEvaluatorsCount
 
-  def reproducersCount = data.getReproducersCount()
+  def reproducersCount = data.getReproducersCount
 
-  def evaluatorsCapacity = data.getEvaluatorsCapacity()
+  def evaluatorsCapacity = data.getEvaluatorsCapacity
 
-  def reproducersCapacity = data.getReproducersCapacity()
+  def reproducersCapacity = data.getReproducersCapacity
 
-  def popSize = data.getPopSize()
+  def popSize = data.getPopSize
 
-  def evaluations = data.getEvaluations()
+  def evaluations = data.getEvaluations
 
-  def repetitions = data.getRepetitions()
+  def repetitions = data.getRepetitions
 
   def chromosomeSize = solution.varsCount
 
-  def genInd(): List[AnyVal] =
-    (for (i <- 1 to chromosomeSize) yield r.nextBoolean).toList
+  def genInd(): TIndividual = {
+    val res = new TIndividual()
+    for (i <- 1 to chromosomeSize) {
+      res += r.nextInt(2).asInstanceOf[Byte]
+    }
+    res
+  }
 
   def loadSolution(instanceFileName: String): TMaxSAT_Problem = {
 
-    val it = scala.io.Source.fromFile(instanceFileName).getLines
+    val it = scala.io.Source.fromFile(instanceFileName).getLines()
 
-    (1 to 5).foreach(_ => it.next)
+    (1 to 5).foreach(_ => it.next())
 
     val spaceRE = """\s+0*"""
 
-    val l1 = it.next
+    val l1 = it.next()
     val f1 = l1.split(spaceRE)
-    it.next
-    val l2 = it.next
+    it.next()
+    val l2 = it.next()
     val f2 = l2.split(spaceRE)
     val clauseLength = f1.last.toInt
     val varsCount = f2(2).toInt
     val clausesCount = f2(3).toInt
 
-    val clauses = ArrayBuffer[List[(Boolean, Int)]]()
+    var clauses = ArrayBuffer[List[(Byte, Int)]]()
 
-    var l = it.next
+    var l = it.next()
 
     while (!l.contains("%")) {
 
       val intValues = l.trim.split(spaceRE).map(_.toInt)
       val nEntry = intValues.map(
-        i => if (i < 0) (false, -i - 1) else (true, i - 1))
+        i => if (i < 0) (0.asInstanceOf[Byte], -i - 1) else (1.asInstanceOf[Byte], i - 1))
 
       clauses += nEntry.toList
 
-      l = it.next
+      l = it.next()
     }
+
     new TMaxSAT_Problem(clauseLength, varsCount, clausesCount, clauses.toList)
   }
 
   val solution = loadSolution("./problems/uf100-01.cnf")
 
-  def function(pInd: List[AnyVal]): Int = {
-
-    val ind = pInd.asInstanceOf[List[Boolean]]
-
-    solution.clauses.count((c: List[(Boolean, Int)]) => {
-      // Al menos un componente de la cláusula coincide con el valor del gen.
+  def function(ind: TIndividual): Long = {
+    solution.clauses.count((c: List[(Byte, Int)]) => {
       c.exists(
-        (e: (Boolean, Int)) => ind(e._2) == e._1)
+        (e: (Byte, Int)) => ind(e._2) == e._1)
     })
-
   }
 
-  def fitnessTerminationCondition(ind: List[AnyVal], fit: Int): Boolean = fit >= 424
+  def fitnessTerminationCondition(ind: TIndividual, fit: Long): Boolean = fit >= 420
 
-  def changeGen(g: Any): Any = !g.asInstanceOf[Boolean]
+  def changeGen(aByte: Byte): Byte = if (aByte == 0) 1.asInstanceOf[Byte] else 0.asInstanceOf[Byte]
 
 }

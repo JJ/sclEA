@@ -11,15 +11,16 @@
 
 package pea
 
-import akka.actor.{ Actor, Props, ActorSystem, ActorRef }
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ArrayBuffer
-import java.io._
-import java.util.Date
+import akka.actor.{Actor, ActorRef, ActorSystem}
+import com.google.gson.Gson
+import ea.entities.HybridParRes
+
+import scala.collection.mutable
+import scala.collection.mutable.{ArrayBuffer, HashMap}
 
 class Manager extends Actor {
 
-  var results: ArrayBuffer[HashMap[Symbol, Any]] = _
+  var results: ArrayBuffer[mutable.HashMap[Symbol, Any]] = _
   var profiler: ActorRef = _
   var instances: ArrayBuffer[(() => Unit, String)] = _
   var system: ActorSystem = _
@@ -27,59 +28,40 @@ class Manager extends Actor {
   def receive = {
 
     case ('init, pflr: ActorRef, sys: ActorSystem) =>
-      //      println("Report started: ")
       profiler = pflr
       system = sys
-      instances = new ArrayBuffer[(() => Unit, String)]()
-      results = ArrayBuffer[HashMap[Symbol, Any]]()
 
     case ('experimentEnd,
-      reportData: HashMap[Symbol, Any]) =>
-      // (println (format "Best fitness: %1d at %2d" (nth reportData 5) (.getTime (Date.))))
-      //      println("Best fitness: " + reportData('bestSol).asInstanceOf[Int] + " at " + new Date().getTime())
-      results += reportData
-      if (instances.isEmpty) {
-        println("All ends!")
+    reportData: mutable.HashMap[Symbol, Any]) =>
+      //      println("All ends!")
+      val res = new HybridParRes()
+      val ec = reportData.asInstanceOf[mutable.HashMap[Symbol, Any]]('evaluatorsCount).asInstanceOf[Int]
+      res.setEvaluatorsCount(ec)
+      val rc = reportData.asInstanceOf[mutable.HashMap[Symbol, Any]]('reproducersCount).asInstanceOf[Int]
+      res.setReproducersCount(rc)
+      val evolutionDelay = reportData.asInstanceOf[mutable.HashMap[Symbol, Any]]('evolutionDelay).asInstanceOf[Long]
+      res.setEvolutionDelay(evolutionDelay)
+      val numberOfEvals = reportData.asInstanceOf[mutable.HashMap[Symbol, Any]]('numberOfEvals).asInstanceOf[Long]
+      res.setNumberOfEvals(numberOfEvals)
+      val nEmig = reportData.asInstanceOf[mutable.HashMap[Symbol, Any]]('nEmig).asInstanceOf[Int]
+      res.setEmigrations(nEmig)
+      val nIslands = reportData.asInstanceOf[mutable.HashMap[Symbol, Any]]('nIslands).asInstanceOf[Int]
+      res.setNumberOfIslands(nIslands)
+      val bestSol = reportData.asInstanceOf[mutable.HashMap[Symbol, Any]]('bestSol).asInstanceOf[Long]
+      res.setBestSol(bestSol)
+      val eCap = reportData.asInstanceOf[mutable.HashMap[Symbol, Any]]('evaluatorsCapacity).asInstanceOf[Int]
+      res.setEvaluatorsCapacity(eCap)
+      val rCap = reportData.asInstanceOf[mutable.HashMap[Symbol, Any]]('reproducersCapacity).asInstanceOf[Int]
+      res.setReproducersCapacity(rCap)
 
-        val w = new PrintWriter(new File(problem.parallelOutputFilename))
-        w.write("EvolutionDelay,Evaluations,Emigrations,EvaluatorsCount,ReproducersCount,IslandsCount,BestSol\n")
+      val g = new Gson()
+      println(g.toJson(res))
 
-        for (r <- results) {
-          val ec = r.asInstanceOf[HashMap[Symbol, Any]]('conf).asInstanceOf[HashMap[Symbol, Any]]('evaluatorsCount).asInstanceOf[Int]
-          val rc = r.asInstanceOf[HashMap[Symbol, Any]]('conf).asInstanceOf[HashMap[Symbol, Any]]('reproducersCount).asInstanceOf[Int]
-          val evolutionDelay = r.asInstanceOf[HashMap[Symbol, Any]]('evolutionDelay).asInstanceOf[Long]
-          val numberOfEvals = r.asInstanceOf[HashMap[Symbol, Any]]('numberOfEvals).asInstanceOf[Int]
-          val nEmig = r.asInstanceOf[HashMap[Symbol, Any]]('nEmig).asInstanceOf[Int]
-          val nIslands = r.asInstanceOf[HashMap[Symbol, Any]]('nIslands).asInstanceOf[Int]
-          val bestSol = r.asInstanceOf[HashMap[Symbol, Any]]('bestSol).asInstanceOf[Int]
+      system.shutdown()
+      sheduling.ShedulingUtility.shutdown()
 
-          w.write(s"$evolutionDelay,$numberOfEvals,$nEmig,$ec,$rc,$nIslands,$bestSol\n")
-        }
-        w.close()
-
-        system.shutdown()
-        sheduling.ShedulingUtility.shutdown()
-
-      } else
-        self ! 'mkExperiment
-
-    case 'mkExperiment =>
-      if (!instances.isEmpty) {
-
-        val (now, name) = instances.remove(0)
-
-        val tt = new Date().getTime()
-
-        println(s"Doing experiment: $name (time -> $tt)")
-
-        now()
-
-      }
-
-    case ('session, funs: List[(() => Unit, String)]) =>
-
-      instances ++= funs
-      self ! 'mkExperiment
+    case ('mkExperiment, (app: Function0[Unit], name: String)) =>
+      app()
 
   }
 

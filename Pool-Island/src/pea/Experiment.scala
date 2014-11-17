@@ -11,13 +11,15 @@
 
 package pea
 
+import akka.actor.{ActorRef, Props}
+
+import scala.collection.mutable
 import scala.collection.mutable.HashMap
-import akka.actor.{ Actor, ActorRef, Props, ActorSystem }
 
 object Experiment {
 
   def r1(pprofiler: ActorRef, pmanager: ActorRef) {
-    val conf = new HashMap[Symbol, Any]()
+    val conf = new mutable.HashMap[Symbol, Any]()
     conf += ('evaluatorsCount -> problem.evaluatorsCount)
     conf += ('evaluatorsCapacity -> problem.evaluatorsCapacity)
     conf += ('reproducersCount -> problem.reproducersCount)
@@ -26,27 +28,27 @@ object Experiment {
     conf += ('manager -> pmanager)
     conf += ('profiler -> pprofiler)
 
-    pprofiler ! ('configuration, conf, 1)
+    pprofiler !('configuration, conf, 1)
 
     val p1 = pEAExperiment.system.actorOf(Props[PoolManager])
 
     val mIslandManager = pEAExperiment.system.actorOf(Props[IslandManager])
 
-    p1 ! ('init, conf.clone ++= List(
+    p1 !('init, conf.clone ++= List(
       ('population, problem.genInitPop()),
       ('system, pEAExperiment.system),
       ('manager, mIslandManager)))
 
-    p1 ! ('migrantsDestination, List(p1))
+    p1 !('migrantsDestination, List(p1))
 
     val pools = Set[ActorRef](p1)
-    val mconf = HashMap[Symbol, Any]()
+    val mconf = mutable.HashMap[Symbol, Any]()
     mconf += ('pools -> pools)
     mconf += ('profiler -> pprofiler)
     mconf += ('manager -> pmanager)
     mconf += ('system -> pEAExperiment.system)
 
-    mIslandManager ! ('init, mconf)
+    mIslandManager !('init, mconf)
 
     val poolsCount = pools.size
     val cociente = problem.evaluations / poolsCount
@@ -54,17 +56,17 @@ object Experiment {
     val (primeros, ultimos) = pools.splitAt(resto)
 
     for (p <- primeros)
-      p ! ('initEvaluations, cociente + 1)
+      p !('initEvaluations, cociente + 1)
 
     for (p <- ultimos)
-      p ! ('initEvaluations, cociente)
+      p !('initEvaluations, cociente)
 
     mIslandManager ! 'start
 
   }
 
   def r2(pprofiler: ActorRef, pmanager: ActorRef) {
-    val conf = new HashMap[Symbol, Any]()
+    val conf = new mutable.HashMap[Symbol, Any]()
     conf += ('evaluatorsCount -> problem.evaluatorsCount)
     conf += ('evaluatorsCapacity -> problem.evaluatorsCapacity)
     conf += ('reproducersCount -> problem.reproducersCount)
@@ -73,49 +75,52 @@ object Experiment {
     conf += ('manager -> pmanager)
     conf += ('profiler -> pprofiler)
 
-    pprofiler ! ('configuration, conf, 2)
+    pprofiler !('configuration, conf, 2)
 
     val p1 = pEAExperiment.system.actorOf(Props[PoolManager])
     val p2 = pEAExperiment.system.actorOf(Props[PoolManager])
 
     val mIslandManager = pEAExperiment.system.actorOf(Props[IslandManager])
 
-    p1 ! ('init, conf.clone ++= List(
+    p1 !('init, conf.clone ++= List(
       ('population, problem.genInitPop()),
       ('system, pEAExperiment.system),
       ('manager, mIslandManager)))
 
-    p2 ! ('init, conf.clone ++= List(
+    p2 !('init, conf.clone ++= List(
       ('population, problem.genInitPop()),
       ('system, pEAExperiment.system),
       ('manager, mIslandManager)))
 
-    p1 ! ('migrantsDestination, List(p2))
-    p2 ! ('migrantsDestination, List(p1))
+    p1 !('migrantsDestination, List(p2))
+    p2 !('migrantsDestination, List(p1))
 
     val pools = Set[ActorRef](p1, p2)
 
-    val mconf = HashMap[Symbol, Any]()
+    val mconf = mutable.HashMap[Symbol, Any]()
 
     mconf += ('pools -> pools)
     mconf += ('profiler -> pprofiler)
     mconf += ('manager -> pmanager)
     mconf += ('system -> pEAExperiment.system)
 
-    mIslandManager ! ('init, mconf)
+    mIslandManager !('init, mconf)
 
     val poolsCount = pools.size
     val cociente = problem.evaluations / poolsCount
     val resto = problem.evaluations % poolsCount
-    val (primeros, ultimos) = pools.splitAt(resto)
+    val (primeros, _) = pools.splitAt(resto)
 
-    for (p <- primeros)
-      p ! ('initEvaluations, cociente + 1)
+    for (p <- primeros) {
+      p !('initEvaluations, cociente + 1)
+//      println("primeros: " + (cociente + 1))
+    }
 
-    for (p <- ultimos)
-      p ! ('initEvaluations, cociente)
+    for (p <- pools) {
+      p !('initEvaluations, cociente)
+//      println("todos: " + cociente)
+    }
 
     mIslandManager ! 'start
-
   }
 }

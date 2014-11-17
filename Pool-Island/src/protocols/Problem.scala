@@ -11,6 +11,8 @@
 
 package protocols
 
+import seqEA.TIndividual
+
 trait Problem {
 
 //  def terminationCondition: Symbol
@@ -27,14 +29,14 @@ trait Problem {
   def seqOutputFilename: String
   def parallelOutputFilename: String
   
-  def function(ind: List[AnyVal]): Int
-  def fitnessTerminationCondition(ind: List[AnyVal], fit: Int): Boolean
-  def genInd(): List[AnyVal]
+  def function(ind: TIndividual): Long
+  def fitnessTerminationCondition(ind: TIndividual, fit: Long): Boolean
+  def genInd(): TIndividual
 
   def genInitPop() =
     for (i <- 1 to popSize) yield genInd()
 
-  def changeGen(g: Any): Any
+  def changeGen(g: Byte): Byte
   
   def repetitions: Int
 

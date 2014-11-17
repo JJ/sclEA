@@ -3,9 +3,9 @@
     "parallelOutputFilename": "parResults.csv",
     "evaluatorsCount": 25,
     "reproducersCount": 10,
-    "evaluatorsCapacity": 50,
-    "reproducersCapacity": 50,
+    "evaluatorsCapacity": 16,
+    "reproducersCapacity": 16,
     "popSize": 1024,
-    "evaluations": 538966,
-    "repetitions": 30
+    "evaluations": 538,
+    "repetitions": 2
 }

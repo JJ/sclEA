@@ -3,8 +3,8 @@
     "parallelOutputFilename": "parResults.csv",
     "evaluatorsCount": 25,
     "reproducersCount": 10,
-    "evaluatorsCapacity": 50,
-    "reproducersCapacity": 50,
+    "evaluatorsCapacity": 32,
+    "reproducersCapacity": 128,
     "popSize": 1024,
     "evaluations": 538966,
     "repetitions": 30

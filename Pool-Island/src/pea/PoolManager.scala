@@ -12,7 +12,11 @@
 package pea
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import pea.ds.{EvaluatorsPool, ReproducersPool}
+import seqEA.{TIndEval, TIndividual}
 
+import scala.collection.JavaConversions._
+import scala.collection.mutable
 import scala.collection.mutable.HashMap
 import scala.util.Random
 
@@ -27,11 +31,36 @@ object PoolManager {
   var poolSize: Int = _
 }
 
+class ActorR(p2Rep: ReproducersPool[TIndEval], pmConf: mutable.HashMap[Symbol, Any]) extends Actor {
+  override def receive: Receive = {
+    case ('sendItWork, target: ActorRef) =>
+      target !('evolve, p2Rep.extractElements(
+        pmConf('reproducersCapacity).asInstanceOf[Int]).toList)
+  }
+}
+
+//object ActorR {
+//  def props(p2Rep: ReproducersPool[TIndEval], pmConf: HashMap[Symbol, Any]): Props = Props(new ActorR(p2Rep, pmConf))
+//}
+
+class ActorE(p2Eval: EvaluatorsPool[TIndividual]) extends Actor {
+  override def receive: Receive = {
+    case ('sendItWork, target: ActorRef, n: Int) =>
+      target !('evaluate, p2Eval.extractElements(n).toList)
+  }
+}
+
+//object ActorE {
+//  def props(p2Eval: EvaluatorsPool[TIndividual]): Props = Props(new ActorE(p2Eval))
+//}
+
 class PoolManager extends Actor {
   val log = Logging(context.system, this)
 
-  var table: HashMap[List[AnyVal], (Int, Int)] = _
-  val pmConf = new HashMap[Symbol, Any]()
+  val p2Rep = new ReproducersPool[TIndEval]()
+  val p2Eval = new EvaluatorsPool[TIndividual]()
+
+  val pmConf = new mutable.HashMap[Symbol, Any]()
 
   var active: Boolean = _
   var migrantsDestination: List[ActorRef] = _
@@ -46,16 +75,19 @@ class PoolManager extends Actor {
 
   val r = new Random()
 
+  var addrJobs: ActorRef = _
+
+  var addeJobs: ActorRef = _
+
   //def receive = LoggingReceive {
   def receive = {
 
     case ('initEvaluations, cant: Int) =>
       evaluations = cant
 
-    case ('init, conf: HashMap[Symbol, Any]) =>
+    case ('init, conf: mutable.HashMap[Symbol, Any]) =>
 
       log.debug("init")
-
       pmConf('evaluatorsCount) = conf('evaluatorsCount)
       pmConf('reproducersCount) = conf('reproducersCount)
       pmConf('evaluatorsCapacity) = conf('evaluatorsCapacity)
@@ -69,12 +101,9 @@ class PoolManager extends Actor {
       manager = conf('manager).asInstanceOf[ActorRef]
       system = conf('system).asInstanceOf[ActorSystem]
 
-      table = HashMap[List[AnyVal], (Int, Int)]()
-      table ++=
-        (for (p <- conf('population).asInstanceOf[Iterable[List[AnyVal]]])
-        yield (p, (-1, 1)))
+      p2Eval.append(conf('population).asInstanceOf[List[TIndividual]])
 
-      PoolManager.poolSize = table.size
+      PoolManager.poolSize = p2Eval.length()
 
       evals ++= (for (i <- 1 to conf('evaluatorsCount).asInstanceOf[Int])
       yield system.actorOf(Props[Evaluator]))
@@ -82,25 +111,35 @@ class PoolManager extends Actor {
       reps ++= (for (i <- 1 to conf('reproducersCount).asInstanceOf[Int])
       yield system.actorOf(Props[Reproducer]))
 
+      //      val tt = Util.createActorR(system, p2Rep, pmConf)
+      //      if (tt == null) {
+      //        println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+      //        System.exit(0)
+      //      }
+
+      addrJobs = system.actorOf(Props(classOf[ActorR], p2Rep, pmConf))
+      addeJobs = system.actorOf(Props(classOf[ActorE], p2Eval))
+
       for (a <- evals ++ reps) {
         a !('init, self, profiler)
       }
 
-    case ('updatePool, newPool: HashMap[List[AnyVal], (Int, Int)]) =>
-      log.debug("updatePool")
-      table = newPool
-
-    case ('add2Pool, newPool: Iterable[(List[AnyVal], (Int, Int))]) =>
-      log.debug("add2Pool")
-      table ++= newPool
+    //    case ('updatePool, newPool: HashMap[List[AnyVal], (Int, Int)]) =>
+    //      log.debug("updatePool")
+    //      p2Eval = newPool
+    //
+    //    case ('add2Pool, newPool: Iterable[(List[AnyVal], (Int, Int))]) =>
+    //      log.debug("add2Pool")
+    //      p2Eval ++= newPool
 
     case ('migrantsDestination, dests: List[ActorRef]) =>
       log.debug("migrantsDestination")
       migrantsDestination = dests
 
-    case ('migration, (i: List[AnyVal], f: Int)) =>
+    case ('migration, i: TIndEval) =>
       log.debug("migration")
-      table += (i ->(f, 2))
+      p2Rep.append(List(i))
+      p2Rep.removeWorstN(1)
 
     case ('evaluatorFinalized, pid: ActorRef) =>
       if (evals contains pid) {
@@ -124,37 +163,43 @@ class PoolManager extends Actor {
         self ! 'finalize
       }
 
-    case ('evolveDone, pid: ActorRef) =>
-      log.debug("evolveDone")
+    case ('solutionReachedbyEvaluator, indEval: TIndEval, pid: ActorRef) =>
+      log.debug("solutionReachedbyEvaluator")
       if (active) {
+        manager !('solutionReached, self, indEval)
+        self ! 'finalize
+        active = false
+      }
+
+    case ('reproductionDone, pid: ActorRef, nInds: List[TIndividual]) =>
+      log.debug("reproductionDone")
+      if (active) {
+        p2Eval.append(nInds)
         if (r.nextInt() % 2 == 0) {
-          pid !('emigrateBest, table, migrantsDestination(r.nextInt(migrantsDestination.length)))
+          // migration
+          // TODO: migration
+          // migrantsDestination(r.nextInt(migrantsDestination.length)) ! bestSol
         }
-        pid !('evolve, table, pmConf('reproducersCapacity).asInstanceOf[Int])
+        addrJobs !('sendItWork, pid)
       } else {
         pid ! 'finalize
         //        system.stop(pid)
       }
 
-    case ('solutionReachedbyEvaluator, (ind: List[AnyVal], fit: Int), pid: ActorRef) =>
-      log.debug("solutionReachedbyEvaluator")
-      if (active) {
-        manager !('solutionReached, self, (ind, fit))
-        self ! 'finalize
-        active = false
-      }
-
-    case ('evalDone, pid: ActorRef, n: Int, bs: (List[AnyVal], Int)) =>
+    case ('evalDone, pid: ActorRef, nSels: List[TIndEval], bs: TIndEval) =>
+      //      println("evalDone")
       log.debug("evalDone")
       if (active) {
-        manager !('evalDone, self, n, bs)
-        val evaluatorsCapacity = {
-          val teval = evaluations - n
+        manager !('evalDone, self, nSels.length, bs) // Report to principal manager
+        p2Rep.append(nSels) // TODO: Ver si hay que eliminar alguno...
+        val evaluatorsCapacity: Int = {
+          val teval = evaluations - nSels.length
           evaluations = if (teval > 0) teval else 0
           Math.min(evaluations, problem.evaluatorsCapacity)
         }
+        //        println(evaluations)
         if (evaluatorsCapacity > 0) {
-          pid !('evaluate, table, evaluatorsCapacity)
+          addeJobs !('sendItWork, pid, evaluatorsCapacity)
         } else {
           if (active) {
             manager !('numberOfEvaluationsReached, self, bs)
@@ -176,27 +221,27 @@ class PoolManager extends Actor {
       active = false
       self ! 'finalizeAllWorkers
 
-//    case 'evaluationsDone =>
-//      log.debug("evaluationsDone")
-//      evaluationsDone()
+    //    case 'evaluationsDone =>
+    //      log.debug("evaluationsDone")
+    //      evaluationsDone()
 
     case 'sReps =>
       log.debug("sReps")
       for (e <- reps)
-        e !('evolve, table, 0)
+        e !('evolve, p2Rep.extractElements(0).toList)
 
     case 'sEvals =>
       log.debug("sEvals")
-      for (e <- evals)
-        e !('evaluate, table, 0)
-
+      for (e <- evals) {
+        e !('evaluate, p2Eval.extractElements(0).toList)
+      }
     case ('evalEmpthyPool, pid: ActorRef) =>
       log.debug("evalEmpthyPool")
       val time = 100
       ShedulingUtility.send_after(time, new Callable[Any] {
         def call() = {
           //log.debug ("eval")
-          pid !('evaluate, table, pmConf('evaluatorsCapacity).asInstanceOf[Int])
+          addeJobs !('sendItWork, pid, pmConf('evaluatorsCapacity).asInstanceOf[Int])
         }
       })
 
@@ -206,7 +251,7 @@ class PoolManager extends Actor {
       ShedulingUtility.send_after(time, new Callable[Any] {
         def call() = {
           //log.debug ("rep")
-          pid !('evolve, table, pmConf('reproducersCapacity).asInstanceOf[Int])
+          addrJobs !('sendItWork, pid)
         }
       })
 
@@ -215,19 +260,6 @@ class PoolManager extends Actor {
       manager !('poolManagerEnd, self)
       system.stop(self)
   }
-
-//  def bestSolution(): (AnyRef, Int) = {
-//    val evals = table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).toList
-//    if (evals.isEmpty) (null, -1)
-//    else {
-//      val red = evals.reduce(
-//        (a: (List[AnyVal], (Int, Int)), b: (List[AnyVal], (Int, Int))) =>
-//          if (a._2._1 < b._2._1) b else a)
-//
-//      (red._1, red._2._1)
-//    }
-//
-//  }
 
   //  def logTable() {
   //

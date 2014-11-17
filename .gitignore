@@ -13,3 +13,5 @@ libs/
 *.xml
 *.cnf
 tests/
+*.iml
+*.name

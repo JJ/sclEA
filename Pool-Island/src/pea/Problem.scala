@@ -11,6 +11,8 @@
 
 package pea
 
+import seqEA.TIndividual
+
 object problem {
 
   def problemName =
@@ -24,11 +26,11 @@ object problem {
   def seqOutputFilename: String = conf.seqOutputFilename
   def parallelOutputFilename: String = conf.parallelOutputFilename
   
-  def function(ind: List[AnyVal]): Int = conf.function(ind)
+  def function(ind: TIndividual): Long = conf.function(ind)
 
-  def fitnessTerminationCondition(ind: List[AnyVal], fit: Int): Boolean = conf.fitnessTerminationCondition(ind, fit)
+  def fitnessTerminationCondition(ind: TIndividual, fit: Long): Boolean = conf.fitnessTerminationCondition(ind, fit)
 
-  def genInitPop() = conf.genInitPop()
+  def genInitPop() = conf.genInitPop().toList
 
   def evaluatorsCount = conf.evaluatorsCount
   def evaluatorsCapacity = conf.evaluatorsCapacity
@@ -37,7 +39,7 @@ object problem {
 
   def evaluations = conf.evaluations
   
-  def changeGen(g: Any): Any = conf.changeGen(g)
+  def changeGen(g: Byte): Any = conf.changeGen(g)
 
   var conf: protocols.Problem =
     problemName match {

@@ -11,25 +11,23 @@
 
 package pea
 
-import java.util.Date
-
 import akka.actor.{Actor, ActorRef}
+import seqEA.{TIndEval, TIndividual}
 
 import scala.collection.mutable
-import scala.collection.mutable.HashMap
 import scala.util.Random
 
 object Reproducer {
 
-  def extractSubpopulation(population: List[(List[AnyVal], Int)], n: Int): List[(List[AnyVal], Int)] = {
-    population.sortWith(
+  def extractSubpopulation(population: Iterable[(List[AnyVal], Int)], n: Int): List[(List[AnyVal], Int)] = {
+    population.toList.sortWith(
       (a: (List[AnyVal], Int), b: (List[AnyVal], Int)) =>
         a._2 > b._2).take(n)
   }
 
-  def bestParent(pop2r: List[(List[AnyVal], Int)]): (List[AnyVal], Int) =
+  def bestParent(pop2r: List[TIndEval]): TIndEval =
     pop2r.reduce(
-      (p1: (List[AnyVal], Int), p2: (List[AnyVal], Int)) => if (p1._2 > p2._2) p1 else p2)
+      (p1: TIndEval, p2: TIndEval) => if (p1._2 > p2._2) p1 else p2)
 
   def mergeFunction(
                      table: mutable.HashMap[List[AnyVal], (Int, Int)],
@@ -37,7 +35,8 @@ object Reproducer {
                      noParents: Set[(List[AnyVal], Int)],
                      nInds: Iterable[List[AnyVal]],
                      bestParents: Iterable[(List[AnyVal], Int)],
-                     poolSize: Int): mutable.HashMap[List[AnyVal], (Int, Int)] = {
+                     //                     poolSize: Int): mutable.HashMap[List[AnyVal], (Int, Int)] = {
+                     poolSize: Int) = {
 
     val l1 = for ((i, j) <- noParents ++ bestParents ++ subpop)
     yield (i, (j, 2))
@@ -66,20 +65,20 @@ object Reproducer {
   }
 
   def selectPop2Reproduce(
-                           subpop: List[(List[AnyVal], Int)],
+                           subpop: List[TIndEval],
                            parentsCount: Int) = {
     def select1from3() = {
       val tuple3 = (for (i <- 1 to 3) yield subpop(r.nextInt(subpop.length))).toList
       tuple3.reduce(
-        (a: (List[AnyVal], Int), b: (List[AnyVal], Int)) =>
+        (a: TIndEval, b: TIndEval) =>
           if (a._2 > b._2) a else b)
     }
 
     for (_ <- 1 to parentsCount * 2) yield select1from3()
   }
 
-  def parentsSelector(population: List[(List[AnyVal], Int)],
-                      n: Int): List[((List[AnyVal], Int), (List[AnyVal], Int))] = {
+  def parentsSelector(population: List[TIndEval],
+                      n: Int): List[(TIndEval, TIndEval)] = {
     val positions = (for (_ <- 1 to n)
     yield (r.nextInt(population.length),
         r.nextInt(population.length))).toList
@@ -87,35 +86,32 @@ object Reproducer {
     positions.map((x) => (population(x._1), population(x._2)))
   }
 
-  def crossover(parents: ((List[AnyVal], Int), (List[AnyVal], Int))): (List[AnyVal], List[AnyVal]) = {
 
-    val ((ind1, _), (ind2, _)) = parents
-    val indLength = ind1.size
-    val crossPoint = r.nextInt(indLength)
-
-    val (a1, a2) = ind1.splitAt(crossPoint + 1)
-    val (b1, b2) = ind2.splitAt(crossPoint + 1)
-
-    val child1 = a1 ++ b2
-
-    val muttationPoint = r.nextInt(indLength)
-
-    val (m1, m2) = child1.splitAt(muttationPoint - 1)
-
-    val b3 = m1 ++ List(problem.changeGen(m2.head)) ++ m2.tail
-
-    (b3.asInstanceOf[List[AnyVal]], b1 ++ a2)
+  def crossover(p: (TIndividual, TIndividual)): (TIndividual, TIndividual) = {
+    val i1 = new TIndividual()
+    val i2 = new TIndividual()
+    val indLength = p._1.length
+    val cPoint = r.nextInt(indLength - 1)
+    for (i <- 0 to cPoint) {
+      i1 += p._1(i)
+      i2 += p._2(i)
+    }
+    for (i <- cPoint + 1 to indLength - 1) {
+      i1 += p._2(i)
+      i2 += p._1(i)
+    }
+    (i1, i2)
   }
 
-  def flatt(parents: Iterable[((List[AnyVal], Int), (List[AnyVal], Int))]) =
+  def flatt(parents: Iterable[(TIndEval, TIndEval)]) =
     (for ((i, _) <- parents) yield i) ++ (for ((_, i) <- parents) yield i)
 
   val r = new Random()
 
-  def evolve(
-              subpop: List[(List[AnyVal], Int)],
-              parentsCount: Int,
-              doWhenLittle: () => Unit = () => {}): (Boolean, (Set[(List[AnyVal], Int)], Iterable[List[AnyVal]], Iterable[(List[AnyVal], Int)])) = {
+  def evolve(subpop: List[TIndEval],
+             parentsCount: Int,
+             doWhenLittle: () => Unit =
+             () => {}): (Boolean, (Set[TIndEval], List[TIndividual], Iterable[TIndEval])) = {
 
     if (subpop.size < 3) {
       doWhenLittle()
@@ -123,7 +119,8 @@ object Reproducer {
     } else {
       val pop2r = selectPop2Reproduce(subpop, parentsCount)
       val parents2use = parentsSelector(pop2r.toList, parentsCount)
-      val nIndsByPair = parents2use.map(crossover)
+      val crossover1 = (a: (TIndEval, TIndEval)) => crossover(a._1._1, a._2._1)
+      val nIndsByPair = parents2use.map(crossover1)
       val nInds = (for ((i, _) <- nIndsByPair) yield i) ++ (for ((_, i) <- nIndsByPair) yield i)
       val noParents = subpop.toSet diff flatt(parents2use.toList).toSet
       val bestParents = List(bestParent(pop2r.toList))
@@ -145,43 +142,39 @@ class Reproducer extends Actor {
       manager = pmanager
       profiler = pflr
 
-    case ('evolve, pTable: mutable.HashMap[List[AnyVal], (Int, Int)], n: Int) =>
-      val table = pTable.clone()
-      val tFiltered = table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).keys.toList
-      val population = tFiltered.map(i => (i, table(i)._1))
-
-      val subpop = Reproducer.extractSubpopulation(population, n)
-
+    case ('evolve, subpop: List[TIndEval]) =>
       val (res, resultData) =
         Reproducer.evolve(
           subpop,
-          parentsCount = n / 2,
+          parentsCount = subpop.length / 2,
           doWhenLittle = () => {
             manager !('repEmpthyPool, self)
           })
 
       if (res) {
         val (noParents, nInds, bestParents) = resultData
-        manager !('updatePool,
-          Reproducer.mergeFunction(
-            table, subpop,
-            noParents, nInds,
-            bestParents, PoolManager.poolSize))
-        manager !('evolveDone, self)
+        //        manager !('updatePool,
+        //          Reproducer.mergeFunction(
+        //            table, subpop,
+        //            noParents, nInds,
+        //            bestParents, PoolManager.poolSize))
+        manager !('reproductionDone, self, nInds)
         profiler !('iteration, nInds)
       }
-
-    case ('emigrateBest, pTable: mutable.HashMap[List[AnyVal], (Int, Int)], destination: ActorRef) =>
-      val table = pTable.clone()
-      val sels = table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2)
-      if (sels.size > 0) {
-        val res = sels.reduce(
-          (a: (List[AnyVal], (Int, Int)), b: (List[AnyVal], (Int, Int))) =>
-            if (a._2._2 > b._2._2) a else b)
-
-        destination !('migration, (res._1, res._2._1))
-        profiler !('migration, (res._1, res._2._1), new Date().getTime)
+      else {
+        manager !('reproductionDone, self, List())
       }
+    //    case ('emigrateBest, pTable: mutable.HashMap[List[AnyVal], (Int, Int)], destination: ActorRef) =>
+    //      val table = pTable.clone()
+    //      val sels = table.filter((a: (List[AnyVal], (Int, Int))) => a._2._2 == 2)
+    //      if (sels.size > 0) {
+    //        val res = sels.reduce(
+    //          (a: (List[AnyVal], (Int, Int)), b: (List[AnyVal], (Int, Int))) =>
+    //            if (a._2._2 > b._2._2) a else b)
+    //
+    //        destination !('migration, (res._1, res._2._1))
+    //        profiler !('migration, (res._1, res._2._1), new Date().getTime)
+    //      }
 
     case 'finalize =>
       manager !('reproducerFinalized, self)
