@@ -1,5 +1,6 @@
 package seqEA
 
+import java.io.{File, PrintWriter}
 import java.util.Date
 
 import com.google.gson.Gson
@@ -81,19 +82,14 @@ object seqEA_Experiment {
     def calculatePopulationSize(): ArrayBuffer[(Long, Long, Int)] = {
       val nRes = new ArrayBuffer[(Long, Long, Int)]()
       val max = problem.repetitions
-      println(max)
       var i = 0
       var found = true
       while (i < max && found) {
-        println(1)
         val (time, (solFound, fitness, evals)) = testsRunSeqEA()
-        println(2)
         found = solFound
-        println(3)
         if (found) {
           nRes.append((time, fitness, evals))
         }
-        println(4)
         i += 1
       }
       if (!found) {
@@ -103,26 +99,28 @@ object seqEA_Experiment {
       nRes
     }
 
-    //    val nRes: ArrayBuffer[(Long, Long, Int)] = calculatePopulationSize()
+    val initMode = false
 
-    val (evolutionDelay, (_, bestSol, evals)) = testsRunSeqEA()
-    val res = new SeqRes(evolutionDelay, bestSol, evals)
-    val g = new Gson()
-    println(g.toJson(res))
+    if (initMode) {
+      val nRes: ArrayBuffer[(Long, Long, Int)] = calculatePopulationSize()
+      val w = new PrintWriter(new File(problem.seqOutputFilename))
+      w.write("EvolutionDelay,BestSol,Evaluations\n")
+      for ((evolutionDelay, bestSol, evals) <- nRes) {
+        w.write(s"$evolutionDelay,$bestSol,$evals\n")
+      }
+      w.close()
 
-    //    val nRes =
-    //      for (_ <- 1 to problem.repetitions)
-    //        yield testsRunSeqEA()
-    //
-    //
-    //    val w = new PrintWriter(new File(problem.seqOutputFilename))
-    //    w.write("EvolutionDelay,Evaluations,BestSol\n")
-    //    for ((evolutionDelay, (_, bestSol, evals)) <- nRes) {
-    //      w.write(s"$evolutionDelay,$evals,$bestSol\n")
-    //    }
-    //    w.close()
-    //
-    //    println("Ends!")
+      println("Ends!")
+    } else {
+      //      val nRes =
+      //        for (_ <- 1 to problem.repetitions)
+      //        yield testsRunSeqEA()
+
+      val (evolutionDelay, (_, bestSol, evals)) = testsRunSeqEA()
+      val res = new SeqRes(evolutionDelay, bestSol, evals)
+      val g = new Gson()
+      println(g.toJson(res))
+    }
   }
 
 }

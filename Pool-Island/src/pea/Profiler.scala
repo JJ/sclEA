@@ -25,7 +25,7 @@ class Profiler extends Actor {
   var initEvol: Long = _
   var nIslands: Int = _
   var iterations: ArrayBuffer[(Int, Int, Double)] = _
-  var emigrations: ArrayBuffer[Long] = _
+  var emigrations: Int = _
 
   var evolutionDelay: Long = _
   var numberOfEvals: Long = _
@@ -37,17 +37,17 @@ class Profiler extends Actor {
       //      println("Profiler started: ")
 
       manager = pManager
-      emigrations = new ArrayBuffer[Long]()
+      emigrations = 0
       iterations = new ArrayBuffer[(Int, Int, Double)]
 
     case ('configuration, nConf: mutable.HashMap[Symbol, Any], nNIslands: Int) =>
       conf = nConf.clone()
       nIslands = nNIslands
-      emigrations.clear()
+      emigrations = 0
       iterations.clear()
 
-    case ('migration, (_: List[AnyVal], _: Int), t: Long) =>
-      emigrations += t
+    case ('migration, _) =>
+      emigrations += 1
 
     case ('initEvol, t: Long) =>
       initEvol = t
@@ -66,7 +66,7 @@ class Profiler extends Actor {
       val reportData = mutable.HashMap[Symbol, Any]()
       reportData += ('evolutionDelay -> evolutionDelay)
       reportData += ('numberOfEvals -> numberOfEvals)
-      reportData += ('nEmig -> emigrations.length)
+      reportData += ('nEmig -> emigrations)
       reportData += ('nIslands -> nIslands)
       reportData += ('bestSol -> bestSolution)
       reportData += ('reproducersCount -> conf('reproducersCount))

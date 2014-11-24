@@ -14,7 +14,6 @@ package pea
 import akka.actor.{Actor, ActorRef}
 import seqEA.{TIndEval, TIndividual}
 
-import scala.collection.mutable
 import scala.util.Random
 
 object Reproducer {
@@ -29,40 +28,40 @@ object Reproducer {
     pop2r.reduce(
       (p1: TIndEval, p2: TIndEval) => if (p1._2 > p2._2) p1 else p2)
 
-  def mergeFunction(
-                     table: mutable.HashMap[List[AnyVal], (Int, Int)],
-                     subpop: Iterable[(List[AnyVal], Int)],
-                     noParents: Set[(List[AnyVal], Int)],
-                     nInds: Iterable[List[AnyVal]],
-                     bestParents: Iterable[(List[AnyVal], Int)],
-                     //                     poolSize: Int): mutable.HashMap[List[AnyVal], (Int, Int)] = {
-                     poolSize: Int) = {
-
-    val l1 = for ((i, j) <- noParents ++ bestParents ++ subpop)
-    yield (i, (j, 2))
-
-    val l2 = for (i <- nInds)
-    yield (i, (-1, 1))
-
-    val sub1 = mutable.HashMap[List[AnyVal], (Int, Int)]() ++ (l1 ++ l2)
-    val table1 = table.clone() -- sub1.keys
-    val cant2drop = table1.size - (poolSize - sub1.size)
-
-    val restOlds = table1 -- table.filter(
-      (a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).keys.take(cant2drop)
-
-    val more2drop = (sub1.size + restOlds.size) - poolSize
-
-    val result =
-      if (more2drop > 0) {
-        restOlds -- restOlds.filter(
-          (a: (List[AnyVal], (Int, Int))) => a._2._2 == 1).keys.take(more2drop)
-      } else {
-        restOlds
-      }
-
-    result ++ sub1
-  }
+  //  def mergeFunction(
+  //                     table: mutable.HashMap[List[AnyVal], (Int, Int)],
+  //                     subpop: Iterable[(List[AnyVal], Int)],
+  //                     noParents: Set[(List[AnyVal], Int)],
+  //                     nInds: Iterable[List[AnyVal]],
+  //                     bestParents: Iterable[(List[AnyVal], Int)],
+  //                     //                     poolSize: Int): mutable.HashMap[List[AnyVal], (Int, Int)] = {
+  //                     poolSize: Int) = {
+  //
+  //    val l1 = for ((i, j) <- noParents ++ bestParents ++ subpop)
+  //    yield (i, (j, 2))
+  //
+  //    val l2 = for (i <- nInds)
+  //    yield (i, (-1, 1))
+  //
+  //    val sub1 = mutable.HashMap[List[AnyVal], (Int, Int)]() ++ (l1 ++ l2)
+  //    val table1 = table.clone() -- sub1.keys
+  //    val cant2drop = table1.size - (poolSize - sub1.size)
+  //
+  //    val restOlds = table1 -- table.filter(
+  //      (a: (List[AnyVal], (Int, Int))) => a._2._2 == 2).keys.take(cant2drop)
+  //
+  //    val more2drop = (sub1.size + restOlds.size) - poolSize
+  //
+  //    val result =
+  //      if (more2drop > 0) {
+  //        restOlds -- restOlds.filter(
+  //          (a: (List[AnyVal], (Int, Int))) => a._2._2 == 1).keys.take(more2drop)
+  //      } else {
+  //        restOlds
+  //      }
+  //
+  //    result ++ sub1
+  //  }
 
   def selectPop2Reproduce(
                            subpop: List[TIndEval],
@@ -86,19 +85,25 @@ object Reproducer {
     positions.map((x) => (population(x._1), population(x._2)))
   }
 
-
   def crossover(p: (TIndividual, TIndividual)): (TIndividual, TIndividual) = {
     val i1 = new TIndividual()
     val i2 = new TIndividual()
-    val indLength = p._1.length
-    val cPoint = r.nextInt(indLength - 1)
-    for (i <- 0 to cPoint) {
+    val n = p._1.length
+    val c1 = r.nextInt(n - 1)
+    var c2 = c1
+    while (c1 == c2) c2 = r.nextInt(n - 1)
+    val (cPoint1, cPoint2) = if (c1 > c2) (c2, c1) else (c1, c2)
+    for (i <- 0 to cPoint1) {
       i1 += p._1(i)
       i2 += p._2(i)
     }
-    for (i <- cPoint + 1 to indLength - 1) {
+    for (i <- cPoint1 + 1 to cPoint2) {
       i1 += p._2(i)
       i2 += p._1(i)
+    }
+    for (i <- cPoint2 + 1 to n - 1) {
+      i1 += p._1(i)
+      i2 += p._2(i)
     }
     (i1, i2)
   }
@@ -153,11 +158,7 @@ class Reproducer extends Actor {
 
       if (res) {
         val (noParents, nInds, bestParents) = resultData
-        //        manager !('updatePool,
-        //          Reproducer.mergeFunction(
-        //            table, subpop,
-        //            noParents, nInds,
-        //            bestParents, PoolManager.poolSize))
+//        println("Reproducidos: " + nInds.size)
         manager !('reproductionDone, self, nInds)
         profiler !('iteration, nInds)
       }

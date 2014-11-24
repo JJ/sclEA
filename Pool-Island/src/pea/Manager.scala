@@ -20,9 +20,7 @@ import scala.collection.mutable.{ArrayBuffer, HashMap}
 
 class Manager extends Actor {
 
-  var results: ArrayBuffer[mutable.HashMap[Symbol, Any]] = _
   var profiler: ActorRef = _
-  var instances: ArrayBuffer[(() => Unit, String)] = _
   var system: ActorSystem = _
 
   def receive = {

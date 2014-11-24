@@ -1,11 +1,11 @@
 {
     "seqOutputFilename": "seqResults.csv",
     "parallelOutputFilename": "parResults.csv",
-    "evaluatorsCount": 25,
-    "reproducersCount": 10,
-    "evaluatorsCapacity": 32,
-    "reproducersCapacity": 128,
+    "evaluatorsCount": 8,
+    "reproducersCount": 2,
+    "evaluatorsCapacity": 50,
+    "reproducersCapacity": 50,
     "popSize": 1024,
-    "evaluations": 538966,
+    "evaluations": 231660,
     "repetitions": 30
 }
