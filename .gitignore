@@ -15,3 +15,7 @@ libs/
 tests/
 *.iml
 *.name
+*.xlsx
+*.csv
+*.zip
+*.7z

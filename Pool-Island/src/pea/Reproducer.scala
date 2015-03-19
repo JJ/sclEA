@@ -91,7 +91,8 @@ object Reproducer {
     val n = p._1.length
     val c1 = r.nextInt(n - 1)
     var c2 = c1
-    while (c1 == c2) c2 = r.nextInt(n - 1)
+    while (c1 == c2)
+      c2 = r.nextInt(n - 1)
     val (cPoint1, cPoint2) = if (c1 > c2) (c2, c1) else (c1, c2)
     for (i <- 0 to cPoint1) {
       i1 += p._1(i)
