@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 object Event extends Enumeration {
-  val end = Value
+  val parentSelectionEvent = Value
 }
 
 trait FuturesPScheme extends Algorithm with ParAlgorithm with Variation with Selection with Evaluation {
@@ -59,7 +59,7 @@ trait FuturesPScheme extends Algorithm with ParAlgorithm with Variation with Sel
     val system = ActorSystem()
 
     val initPopulation = genInitPopulation()
-    dividePopulation(initPopulation).foreach(newIndsChan.put(_))
+    dividePopulation(initPopulation).foreach(newIndsChan.put)
 
     // pEvaluator
     for (_ <- 1 to evaluatorsCount)
@@ -85,34 +85,32 @@ trait FuturesPScheme extends Algorithm with ParAlgorithm with Variation with Sel
     //    for (_ <- 1 to selectorsCount)
     mkWorker({
       //        println("selector")
-      val ePar = popParentSelChan.poll()
+      val eParentsSelection = popParentSelChan.poll()
       val newIndsEvaluated = indsEvalsChan.poll()
 
-      if (ePar != null && newIndsEvaluated != null) {
+      if (eParentsSelection != null && newIndsEvaluated != null) {
         //            println("pSelector survAndParentsSelector "+ population.size)
         if (population.size > 0)
           parentsChan.put(survAndParentsSelector(newIndsEvaluated))
-        popParentSelChan.put(Event.end)
+        popParentSelChan.put(Event.parentSelectionEvent)
         survAndParentsSelectorCount += 1
       } else if (newIndsEvaluated != null) {
         //            println("pSelector newIndsEvaluated " + population.size)
         if (population.size > 0) {
           population = survivorsSelection(population, newIndsEvaluated)
-          popParentSelChan.put(Event.end)
+          popParentSelChan.put(Event.parentSelectionEvent)
         }
         else
           population = newIndsEvaluated
         survivorsSelectionCount += 1
-      } else if (ePar != null) {
+      } else if (eParentsSelection != null) {
         //            println("pSelector parentsSelection " + population.size)
         if (population.size > 0)
           parentsChan.put(parentsSelection(population))
-        popParentSelChan.put(Event.end)
+        popParentSelChan.put(Event.parentSelectionEvent)
         parentsSelectionCount += 1
       }
 
-      //        println("survAndParentsSelectorCount: " + survAndParentsSelectorCount + " survivorsSelectionCount " + survivorsSelectionCount
-      //          + " parentsSelectionCount " + parentsSelectionCount)
     }, !solutionReached)
 
     // pVariator

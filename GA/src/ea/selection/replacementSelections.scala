@@ -32,7 +32,7 @@ object replacementSelections {
 
       val indexesToKeep = selectIndexes(0, BitSet.empty ++ p._1.indices)
       val res = (for {i <- p._1.indices
-                      if (indexesToKeep.contains(i))} yield p._1(i)).toArray
+                      if indexesToKeep.contains(i)} yield p._1(i)).toArray
       res ++ p._2
     }
 
