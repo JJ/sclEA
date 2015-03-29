@@ -9,19 +9,27 @@
  * AGPL (http:www.gnu.org/licenses/agpl-3.0.txt) for more details.
  */
 
-package ea.variation
+package ea.alg.par.async
 
-import ea.TInd.changeBit
-import ea.{TInd, TMutation}
+import akka.actor.ActorSystem
 
-object mutationImpl {
+import scala.concurrent.{ExecutionContext, Future}
 
-  def mutation(pMutation: Double)(implicit rand: {def nextDouble(): Double; def nextInt(n: Int): Int}): TMutation = (ind: TInd) => {
-    if (rand.nextDouble() < pMutation) {
-      val pos = rand.nextInt(ind.size)
-      ind.update(pos, changeBit(ind(pos)))
+trait FuturesParallelScheme {
+
+  def mkWorker(actions: => Unit, cond: => Boolean)(implicit executionContext: ExecutionContext, system: ActorSystem): Unit = {
+    val res = Future {
+      actions
     }
-    ind
+    res.onSuccess {
+      case _ => if (cond) {
+        mkWorker(actions, cond) //(executionContext)
+      }
+    }
+    res.onFailure {
+      case t =>
+        println("Failure: " + t)
+    }
   }
 
 }

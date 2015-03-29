@@ -1,12 +1,22 @@
+/**
+ * Author José Albert Cruz Almaguer <jalbertcruz@gmail.com>
+ * Copyright 2015 by José Albert Cruz Almaguer.
+ *
+ * This program is licensed to you under the terms of version 3 of the
+ * GNU Affero General Public License. This program is distributed WITHOUT
+ * ANY EXPRESS OR IMPLIED WARRANTY, INCLUDING THOSE OF NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. Please refer to the
+ * AGPL (http:www.gnu.org/licenses/agpl-3.0.txt) for more details.
+ */
+
 package ea.problem
 
 import ea._
-import ea.alg.par.async.futuresPromises.FuturesPScheme
+import ea.alg.par.CSPModel
 import ea.selection.{parentSelections, replacementSelections}
 import ea.variation.{crossoverImpl, mutationImpl}
 
-
-object maxOnesFuturesPConfiguration extends FuturesPScheme {
+abstract class MaxOnesParallelConfiguration extends CSPModel {
 
   def tournamentSize = 3
 
