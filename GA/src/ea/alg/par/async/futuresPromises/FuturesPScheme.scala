@@ -67,12 +67,12 @@ trait FuturesPScheme extends Algorithm with ParAlgorithm with Variation with Sel
         //        println("pEvaluator")
         val x = newIndsChan.poll()
         if (terminationCondition()) {
-          //          pResultObtained.trySuccess()
           solChan.put(bestSolution)
-
           solutionReached = true
           akka.pattern.after(2 second, using = system.scheduler)(Future {
-            System.exit(0)
+            executor.shutdownNow()
+            system.shutdown()
+            //            System.exit(0)
           })
         }
         else if (x != null) {
