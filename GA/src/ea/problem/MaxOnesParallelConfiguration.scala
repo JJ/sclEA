@@ -16,7 +16,7 @@ import ea.alg.par.CSPModel
 import ea.selection.{parentSelections, replacementSelections}
 import ea.variation.{crossoverImpl, mutationImpl}
 
-abstract class MaxOnesParallelConfiguration extends CSPModel {
+trait MaxOnesParallelConfiguration extends CSPModel {
 
   def tournamentSize = 3
 
