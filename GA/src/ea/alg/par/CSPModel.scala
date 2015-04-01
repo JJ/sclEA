@@ -11,6 +11,8 @@
 
 package ea.alg.par
 
+import scala.language.postfixOps
+
 import java.util.concurrent.{ArrayBlockingQueue, Executors}
 
 import akka.actor.ActorSystem
