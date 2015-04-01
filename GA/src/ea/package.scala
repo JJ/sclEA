@@ -29,12 +29,8 @@ package object ea {
   type TQualityFitness = Long => Boolean
   type TParents = Array[(TInd, TInd)]
 
-  class TIndEval(ind: TInd, fit: Long) extends Tuple2[TInd, Long](ind, fit) with Comparable[TIndEval] {
-    override def compareTo(o: TIndEval): Int = this._2.compareTo(o._2)
-
-    override def toString(): String = {
-      "[" + this._1.mkString("") + " : " + this._2.toString + "]"
-    }
+  class TIndEval(ind: TInd, fit: Long) extends Tuple2[TInd, Long](ind, fit) {
+    override def toString(): String = "[" + this._1.mkString("") + " : " + this._2.toString + "]"
   }
 
   object TIndEval {
@@ -48,7 +44,7 @@ package object ea {
   trait Evaluation {
     def fitness: TFitness
 
-    def qualityFitness: Long => Boolean
+    def qualityFitness: TQualityFitness
   }
 
   trait Variation {
@@ -77,15 +73,6 @@ package object ea {
     def maxNumberOfEvals: Int
 
     implicit val rand = new Random()
-  }
-
-  trait ParAlgorithm {
-    //    def parentsSelection: TSelection[TPopEval, TParents]
-    //
-    //    def survivorsSelection: TSelection[(TPopEval, TPopEval), TPopEval]
-
-    def survAndParentsSelector: TSelection[TPopEval, TParents]
-
   }
 
 }

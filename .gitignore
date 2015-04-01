@@ -20,3 +20,5 @@ tests/
 *.zip
 *.7z
 CanonicalCSP/
+TODO.txt
+GA/TODO.txt

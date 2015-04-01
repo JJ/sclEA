@@ -23,7 +23,7 @@ object Event extends Enumeration {
   val parentSelectionEvent = Value
 }
 
-trait CSPModel extends Algorithm with ParAlgorithm with Variation with Selection with Evaluation {
+trait CSPModel extends Algorithm with Variation with Selection with Evaluation {
 
   val solChanCapacity = 1
   val newIndsChanCapacity = 100
@@ -142,6 +142,8 @@ trait CSPModel extends Algorithm with ParAlgorithm with Variation with Selection
   var bestSolution: TIndEval = new TIndEval(null, 0)
 
   def dividePopulation(pop: TPopNoEval): Array[TPopNoEval] = pop.grouped(blockSize).toArray
+
+  def survAndParentsSelector: TSelection[TPopEval, TParents]
 
   /*
   def survSelector(newIndsEvaluated: TPopEval): Unit = {
