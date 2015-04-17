@@ -59,6 +59,11 @@ package object ea {
     def survivorsSelection: TSelection[(TPopEval, TPopEval), TPopEval]
   }
 
+  trait GARandom{
+    def nextDouble(): Double
+    def nextInt(n: Int): Int
+  }
+
   trait Algorithm {
     def terminationCondition: () => Boolean
 
@@ -72,7 +77,7 @@ package object ea {
 
     def maxNumberOfEvals: Int
 
-    implicit val rand = new Random()
+    implicit val rand = new Random() with GARandom
   }
 
 }

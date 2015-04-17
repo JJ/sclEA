@@ -11,7 +11,7 @@
 
 package ea.variation
 
-import ea.{TCrossover, TInd}
+import ea.{GARandom, TCrossover, TInd}
 
 object crossoverImpl {
 
@@ -19,7 +19,7 @@ object crossoverImpl {
   //    (p2, p1)
   //  }
 
-  def twoPoint(implicit rand: {def nextInt(n: Int): Int}): TCrossover = (parents: (TInd, TInd)) => {
+  def twoPoint(implicit rand: GARandom): TCrossover = (parents: (TInd, TInd)) => {
     val (p1, p2) = parents
     var pto1 = rand.nextInt(p1.size - 2) + 2
     val pto2 = rand.nextInt(p1.size - 1) + 1

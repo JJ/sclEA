@@ -13,7 +13,7 @@ package test
 
 import ea.selection.parentSelections._
 import ea.selection.replacementSelections._
-import ea.{TInd, TIndEval}
+import ea.{GARandom, TInd, TIndEval}
 import org.scalatest.{FlatSpec, Matchers}
 
 class SelectionSpec extends FlatSpec with Matchers {
@@ -27,7 +27,7 @@ class SelectionSpec extends FlatSpec with Matchers {
     val i4 = TInd(0, 0, 0, 0, 0, 1, 0, 0, 0)
     val i5 = TInd(0, 0, 0, 0, 1, 0, 0, 0, 0)
 
-    val r = new RandomMock(0, 1, 2, 0, 3, 0, 2, 2)
+    val r = new RandomMock(0, 1, 2, 0, 3, 0, 2, 2) with GARandom
     val pop: Array[TIndEval] = Array(TIndEval(i0, 11), TIndEval(i1, 20), TIndEval(i2, 5), TIndEval(i3, 70))
 
     val newsInds = Array(TIndEval(i4, 3), TIndEval(i5, 8))
@@ -47,7 +47,7 @@ class SelectionSpec extends FlatSpec with Matchers {
     val i4 = TInd(0, 0, 0, 0, 0, 1, 0, 0, 0)
     val i5 = TInd(0, 0, 0, 0, 1, 0, 0, 0, 0)
 
-    val r = new RandomMock(0, 1, 2, 1, 0, 2)
+    val r = new RandomMock(0, 1, 2, 1, 0, 2) with GARandom
     val pop: Array[TIndEval] =
       Array(TIndEval(i0, 11), TIndEval(i1, 20), TIndEval(i2, 5), TIndEval(i3, 70))
 
@@ -66,7 +66,7 @@ class SelectionSpec extends FlatSpec with Matchers {
     val i4 = TInd(0, 0, 0, 0, 0, 1, 0, 0, 0)
     val i5 = TInd(0, 0, 0, 0, 1, 0, 0, 0, 0)
 
-    val r = new RandomMock(0, 1, 2, 3, 0, 3, 2, 0)
+    val r = new RandomMock(0, 1, 2, 3, 0, 3, 2, 0) with GARandom
     val pop: Array[TIndEval] =
       Array(TIndEval(i0, 11), TIndEval(i1, 20), TIndEval(i2, 5), TIndEval(i3, 70))
 

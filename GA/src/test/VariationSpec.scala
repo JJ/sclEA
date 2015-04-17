@@ -11,7 +11,7 @@
 
 package test
 
-import ea.TInd
+import ea.{GARandom, TInd}
 import ea.variation.crossoverImpl.twoPoint
 import ea.variation.mutationImpl.mutation
 import org.scalatest._
@@ -26,7 +26,7 @@ class VariationSpec extends FlatSpec with Matchers {
     val ch1F = TInd(0, 0, 0, 0, 0, 0, 0, 0, 0)
     val ch2F = TInd(1, 1, 0, 1, 1, 0, 0, 0, 1)
 
-    val r = new RandomMock(2, 5) // (+2=4, +1=6)
+    val r = new RandomMock(2, 5) with GARandom // (+2=4, +1=6)
 
     twoPoint(r)((ch1O, ch2O)) should be(Array(ch1F, ch2F))
   }
@@ -39,7 +39,7 @@ class VariationSpec extends FlatSpec with Matchers {
     val ch1F = TInd(0, 1, 0, 0, 1, 0, 0, 0, 0)
     val ch2F = TInd(1, 0, 1, 1, 0, 0, 0, 0, 1)
 
-    val r = new RandomMock(-1, 2) // (+2=1, +1=3)
+    val r = new RandomMock(-1, 2) with GARandom // (+2=1, +1=3)
 
     twoPoint(r)((ch1O, ch2O)) should be(Array(ch1F, ch2F))
   }
@@ -51,7 +51,7 @@ class VariationSpec extends FlatSpec with Matchers {
     val ch1F = TInd(0, 0, 0, 0, 1, 0, 1, 0, 0)
     val ch2F = TInd(1, 1, 0, 1, 0, 0, 0, 1, 1)
 
-    val r = new RandomMock(4, 7) // (+2=6, +1=8)
+    val r = new RandomMock(4, 7) with GARandom // (+2=6, +1=8)
 
     twoPoint(r)((ch1O, ch2O)) should be(Array(ch1F, ch2F))
   }
@@ -64,7 +64,7 @@ class VariationSpec extends FlatSpec with Matchers {
     val ch1F = TInd(0, 0, 0, 0, 0, 0, 0, 1, 0)
     val ch2F = TInd(1, 1, 0, 1, 1, 0, 1, 0, 1)
 
-    val r = new RandomMock(3, 4) // (+2=5, +1=5) so (-1=4, 5)
+    val r = new RandomMock(3, 4) with GARandom // (+2=5, +1=5) so (-1=4, 5)
 
     twoPoint(r)((ch1O, ch2O)) should be(Array(ch1F, ch2F))
   }
@@ -77,7 +77,7 @@ class VariationSpec extends FlatSpec with Matchers {
     val ch1F = TInd(0, 1, 0, 0, 1, 0, 0, 1, 0)
     val ch2F = TInd(1, 0, 0, 1, 0, 0, 1, 0, 1)
 
-    val r = new RandomMock(0, 1) // (+2=2, +1=2) so (-1=1, 2)
+    val r = new RandomMock(0, 1) with GARandom // (+2=2, +1=2) so (-1=1, 2)
 
     twoPoint(r)((ch1O, ch2O)) should be(Array(ch1F, ch2F))
   }
@@ -89,7 +89,7 @@ class VariationSpec extends FlatSpec with Matchers {
     val ch1F = TInd(0, 0, 0, 0, 1, 0, 0, 0, 0)
     val ch2F = TInd(1, 1, 0, 1, 0, 0, 1, 1, 1)
 
-    val r = new RandomMock(6, 7) // (+2=8, +1=8) so (-1=7, 8)
+    val r = new RandomMock(6, 7) with GARandom // (+2=8, +1=8) so (-1=7, 8)
 
     twoPoint(r)((ch1O, ch2O)) should be(Array(ch1F, ch2F))
   }
@@ -101,7 +101,7 @@ class VariationSpec extends FlatSpec with Matchers {
     val indMutated1 = TInd(1, 0, 0, 0, 1, 0, 0, 0, 0)
     val indMutated2 = TInd(0, 0, 0, 0, 1, 0, 0, 0, 1)
 
-    val r = new RandomMock(2, 0, 8)
+    val r = new RandomMock(2, 0, 8) with GARandom
     r.setDoubles(0.02)
 
     mutation(0.1)(r)(ind.clone()) should be(indMutated)
