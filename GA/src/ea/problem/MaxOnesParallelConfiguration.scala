@@ -29,7 +29,7 @@ trait MaxOnesParallelConfiguration extends CSPModel {
   def terminationCheck(ind: TInd, f: Long): Unit = {
     evaluations += 1
     quality = qualityFitness(f)
-    if (f > bestSolution._2)
+    if (f > bestSolution.fit)
       bestSolution = new TIndEval(ind, f)
   }
 

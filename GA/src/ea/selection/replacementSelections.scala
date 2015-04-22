@@ -23,7 +23,7 @@ object replacementSelections {
   //  }
 
   def tournamentReplacement(k: Int)
-                           (implicit rand: {def nextInt(n: Int): Int}): TSelection[(TPopEval, TPopEval), TPopEval] =
+                           (implicit rand: GARandom): TSelection[(TPopEval, TPopEval), TPopEval] =
     (p: (TPopEval, TPopEval)) => {
       val indexesCount = p._2.size
       @annotation.tailrec
@@ -36,7 +36,7 @@ object replacementSelections {
             val pos = rand.nextInt(currentIndexesAsArray.size)
             currentIndexesAsArray(pos)
           }
-          val worst = inds.reduce((a, b) => if (p._1(a)._2 < p._1(b)._2) a else b)
+          val worst = inds.reduce((a, b) => if (p._1(a).fit < p._1(b).fit) a else b)
           selectIndexes(iCount + 1, currentIndexes - worst)
         }
       }
@@ -48,14 +48,14 @@ object replacementSelections {
     }
 
 
-  def survAndParentsSelector(implicit rand: {def nextInt(n: Int): Int},
+  def survAndParentsSelector(implicit rand: GARandom,
                              population: Array[TIndEval], tournamentSize: Int): TSelection[TPopEval, TParents] =
     (newInds: TPopEval) => {
       def f(a: (Int, Int), b: (TIndEval, Int)) = {
-        val currentMax = population(a._1)._2
-        val vMax = if (currentMax < b._1._2) b._2 else a._1
-        val currentMin = population(a._2)._2
-        val vMin = if (currentMin > b._1._2) b._2 else a._2
+        val currentMax = population(a._1).fit
+        val vMax = if (currentMax < b._1.fit) b._2 else a._1
+        val currentMin = population(a._2).fit
+        val vMin = if (currentMin > b._1.fit) b._2 else a._2
         (vMax, vMin)
       }
       for (ind <- newInds) yield {
@@ -68,7 +68,7 @@ object replacementSelections {
         val worst = v2
         val parent2 = population(rand.nextInt(population.size))
         population.update(worst, ind)
-        (bestIndividual._1, parent2._1) // a pair of the best and other randomly selected
+        (bestIndividual.ind, parent2.ind) // a pair of the best and other randomly selected
       }
     }
 

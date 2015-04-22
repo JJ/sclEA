@@ -14,7 +14,6 @@ package ea.variation
 import ea.TInd.changeBit
 import ea.{GARandom, TInd, TMutation}
 
-import scala.concurrent.stm.skel.SimpleRandom
 
 object mutationImpl {
 

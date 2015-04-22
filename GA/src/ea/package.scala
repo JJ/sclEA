@@ -29,13 +29,13 @@ package object ea {
   type TQualityFitness = Long => Boolean
   type TParents = Array[(TInd, TInd)]
 
-  class TIndEval(ind: TInd, fit: Long) extends Tuple2[TInd, Long](ind, fit) {
-    override def toString(): String = "[" + this._1.mkString("") + " : " + this._2.toString + "]"
+  case class TIndEval(ind: TInd, fit: Long) {
+    override def toString(): String = "[" + ind.mkString("") + " : " + fit.toString + "]"
   }
 
-  object TIndEval {
-    def apply(ind: TInd, fit: Long) = new TIndEval(ind, fit)
-  }
+//  object TIndEval {
+//    def apply(ind: TInd, fit: Long) = TIndEval(ind, fit)
+//  }
 
 
   type TPopEval = Array[TIndEval]
