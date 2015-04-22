@@ -1,0 +1,7 @@
+.cache
+.idea/
+target/
+project/project/
+project/target
+*.txt
+*.bat
